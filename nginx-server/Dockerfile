@@ -175,9 +175,9 @@ RUN cd /bms-nginx-server && \
 #RUN cd /bitwave-media-server && \
 #    npm install -g pm2
 
-EXPOSE 1935
 EXPOSE 8080
 EXPOSE 8181
+EXPOSE 1935
 
 #VOLUME ["/bitwave-media-server/db"]
 

@@ -1,15 +1,16 @@
 version: '3'
 services:
     server:
-        image: bitwavetv/bitwave-media-server
+        # image: bitwavetv/bitwave-media-server
+        image: bms-nginx-server
         ports:
             - "8080:8080"
             - "1935:1935"
         networks:
             - frontend
-        volumes:
-            - "~/db:/bitwave-media-server/db"
-            - "./conf/service-account.json:/bitwave-media-server/conf/service-account.json"
+        # volumes:
+            # - "~/db:/bitwave-media-server/db"
+            # - "./conf/service-account.json:/bitwave-media-server/conf/service-account.json"
         environment:
           - BMS_LOGLEVEL=4
           - BMS_TIMEZONE=America/Los_Angeles

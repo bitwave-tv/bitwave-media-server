@@ -10,11 +10,11 @@
         "command": "/usr/local/nginx/sbin/nginx",
         "args": [
             "-c",
-            "/bitwave-media-server/src/conf/nginx.conf"
+            "/bms-nginx-server/src/conf/nginx.conf"
         ],
         "args_ssl": [
             "-c",
-            "/bitwave-media-server/src/conf/nginx_ssl.conf"
+            "/bms-nginx-server/src/conf/nginx_ssl.conf"
         ],
         "streaming": {
             "ip": "127.0.0.1",

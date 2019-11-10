@@ -141,15 +141,15 @@ RUN mkdir -p /tmp/hls && \
 RUN npm install -g typescript
 
 # Install npm packages
-COPY package.json package-lock.json tsconfig.json /bitwave-media-server/
-RUN cd /bitwave-media-server && \
+COPY package.json package-lock.json tsconfig.json /bms-api-server/
+RUN cd /bms-api-server && \
     npm ci && \
     npm cache verify
 
-COPY . /bitwave-media-server
-WORKDIR /bitwave-media-server
+COPY . /bms-api-server
+WORKDIR /bms-api-server
 
-RUN cd /bitwave-media-server && \
+RUN cd /bms-api-server && \
     npm run build && \
     npm prune --production
 
