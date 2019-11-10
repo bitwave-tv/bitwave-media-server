@@ -191,24 +191,6 @@
             "stale_wait": "60000"
         }
     },
-    "nginx": {
-        "command": "/usr/local/nginx/sbin/nginx",
-        "args": [
-            "-c",
-            "/bitwave-media-server/src/conf/nginx.conf"
-        ],
-        "args_ssl": [
-            "-c",
-            "/bitwave-media-server/src/conf/nginx_ssl.conf"
-        ],
-        "streaming": {
-            "ip": "127.0.0.1",
-            "rtmp_port": "1935",
-            "rtmp_hls_path": "/hls/",
-            "http_port": "8080",
-            "http_health_path": "/ping"
-        }
-    },
     "envVars": [
         {
             "name": "BMS_NODEJS_PORT",
