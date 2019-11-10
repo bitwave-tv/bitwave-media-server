@@ -1,0 +1,25 @@
+version: '3'
+services:
+    server:
+        image: bitwavetv/bitwave-media-server
+        ports:
+            - "3000:3000"
+        networks:
+            - frontend
+        volumes:
+            - "~/db:/bitwave-media-server/db"
+            - "./creds/service-account.json:/bitwave-media-server/conf/service-account.json"
+        environment:
+          - BMS_LOGLEVEL=4
+          - BMS_TIMEZONE=America/Los_Angeles
+          - BMS_SNAPSHOT_INTERVAL=1m
+          - BMS_SERVER_URL=stream.bitwave.tv
+          - BMS_CDN_URL=cdn.stream.bitwave.tv
+        deploy:
+          replicas: 1
+          restart_policy:
+            condition: any
+            delay: 5s
+            window: 10s
+networks:
+  frontend:
