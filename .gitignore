@@ -69,3 +69,5 @@ heapdump
 # Account files #
 #################
 conf/service-account.json
+**/service-account.json
+creds
