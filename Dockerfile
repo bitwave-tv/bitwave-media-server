@@ -171,10 +171,6 @@ WORKDIR /bitwave-media-server
 RUN cd /bitwave-media-server && \
     npm run build
 
-# setup global npm tools
-#RUN cd /bitwave-media-server && \
-#    npm install -g pm2
-
 EXPOSE 8080
 EXPOSE 8181
 
