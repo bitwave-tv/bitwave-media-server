@@ -13,6 +13,7 @@ services:
             # - "./conf/service-account.json:/bitwave-media-server/conf/service-account.json"
         environment:
           - BMS_LOGLEVEL=4
+          - BMS_DEBUG=false
           - BMS_TIMEZONE=America/Los_Angeles
           - BMS_SNAPSHOT_INTERVAL=1m
           - BMS_SERVER_URL=stream.bitwave.tv

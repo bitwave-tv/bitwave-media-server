@@ -53,7 +53,7 @@ class Logger {
     if ( BMS_DEBUG === true ) {
       let identifier = `${process.pid}-${process.platform}-${process.arch}`;
       try {
-        this.debuglog = fs.openSync( `/bitwave-media-server/src/webserver/public/debug/BMS-${identifier}.txt`, 'a' );
+        this.debuglog = fs.openSync( `/bms-nginx-server/src/webserver/public/debug/BMS-${identifier}.txt`, 'a' );
       } catch ( err ) {
         this.debuglog = null;
         this.stdout( `Error opening debug file ${identifier}: ${err}`, context, 'INFO' );
@@ -64,7 +64,8 @@ class Logger {
   }
 
   logline ( message, context, type ) {
-    let time = moment().tz( process.env.BMS_TIMEZONE ).format( 'DD-MM-YYYY HH:mm:ss.SSS' );
+    const timezone = process.env.BMS_TIMEZONE || 'America/Los_Angeles';
+    let time = moment().tz( timezone ).format( 'DD-MM-YYYY HH:mm:ss.SSS' );
     let logline = '';
     if ( context )
       logline = `[${time}] [${type.padStart(5, ' ')}] [${context.padStart(10, ' ')}] ${message}`;
