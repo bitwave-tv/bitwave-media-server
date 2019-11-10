@@ -159,17 +159,17 @@ RUN mkdir -p /tmp/hls && \
 RUN npm install -g typescript
 
 # Install npm packages
-COPY package.json package-lock.json /bitwave-media-server/
-RUN cd /bitwave-media-server && \
+COPY package.json package-lock.json tsconfig.json /bms-nginx-server/
+RUN cd /bms-nginx-server && \
     npm ci && \
-    npm prune --production && \
     npm cache verify
 
-COPY . /bitwave-media-server
-WORKDIR /bitwave-media-server
+COPY . /bms-nginx-server
+WORKDIR /bms-nginx-server
 
-RUN cd /bitwave-media-server && \
-    npm run build
+RUN cd /bms-nginx-server && \
+    npm run build && \
+    npm prune --production
 
 # setup global npm tools
 #RUN cd /bitwave-media-server && \
@@ -179,6 +179,6 @@ EXPOSE 1935
 EXPOSE 8080
 EXPOSE 8181
 
-VOLUME ["/bitwave-media-server/db"]
+#VOLUME ["/bitwave-media-server/db"]
 
 CMD ["./run.sh"]

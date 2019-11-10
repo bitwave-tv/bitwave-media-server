@@ -141,17 +141,17 @@ RUN mkdir -p /tmp/hls && \
 RUN npm install -g typescript
 
 # Install npm packages
-COPY package.json package-lock.json /bitwave-media-server/
+COPY package.json package-lock.json tsconfig.json /bitwave-media-server/
 RUN cd /bitwave-media-server && \
     npm ci && \
-    npm prune --production && \
     npm cache verify
 
 COPY . /bitwave-media-server
 WORKDIR /bitwave-media-server
 
 RUN cd /bitwave-media-server && \
-    npm run build
+    npm run build && \
+    npm prune --production
 
 # setup global npm tools
 #RUN cd /bitwave-media-server && \
@@ -159,6 +159,6 @@ RUN cd /bitwave-media-server && \
 
 EXPOSE 3000
 
-VOLUME ["/bitwave-media-server/db"]
+#VOLUME ["/bitwave-media-server/db"]
 
 CMD ["./run.sh"]
