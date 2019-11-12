@@ -26,6 +26,7 @@
   "dependencies": {
     "body-parser": "^1.19.0",
     "cfonts": "^2.4.5",
+    "chalk": "^3.0.0",
     "compression": "^1.7.4",
     "express": "^4.17.1",
     "firebase-admin": "^8.6.1",

@@ -12,6 +12,7 @@ import * as config from './conf/config.json';
 import { envVar } from './classes/EnvVar';
 
 import * as CFonts from 'cfonts';
+import * as chalk from 'chalk';
 const packageJson = require('../package.json');
 
 
@@ -23,13 +24,16 @@ import logger from './classes/Logger';
 const webLogger = logger( './src/webserver' );
 
 // show start message
-webLogger.info ( `Starting [bitwave.tv] Media Server v${packageJson.version}` );
+webLogger.info ( `Starting [bitwave.tv] Media Server ${chalk.bold.greenBright (`v${packageJson.version}`)}` );
 
-webLogger.info (
-  '\x1b[1m\x1b[32m'+
-  CFonts.render('bitwave.tv NGINX', {font: 'simple', color: '#0f0', align: 'center'}).string
-    +'\x1b[0m'
-);
+const fontOptions = {
+  font: 'simple',
+  align: 'center',
+  space: false,
+};
+
+console.log ( chalk.bold.greenBright ( CFonts.render('bitwave.tv',fontOptions).string ) );
+console.log ( chalk.bold.cyan        ( CFonts.render('NGINX', fontOptions).string ) + '\n' );
 
 
 // setup and log environment vars

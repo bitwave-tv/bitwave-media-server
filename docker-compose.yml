@@ -11,6 +11,8 @@ services:
       - "1935:1935"
     networks:
       - internal
+    environment:
+      - FORCE_COLOR=1
 
 
   api-server:
@@ -23,6 +25,8 @@ services:
       - internal
     volumes:
       - "./creds/service-account.json:/bms-api-server/creds/service-account.json"
+    environment:
+      - FORCE_COLOR=1
 
 
 networks:
