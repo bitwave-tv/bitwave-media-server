@@ -1,13 +1,16 @@
 version: '3'
+
+
 services:
     api-server:
-        container_name: bms-api-server
-        # image: bitwavetv/bitwave-media-server
-        image: bms-api-server
+        container_name: bms-api-server-dev
+        image: bitwavetv/bms-api-server
         ports:
           - "3000:3000"
         networks:
-          - frontend
+          internal:
+            aliases:
+              - bms-api-server
         volumes:
           - "./creds/service-account.json:/bms-api-server/creds/service-account.json"
         environment:
@@ -17,13 +20,16 @@ services:
           - BMS_SNAPSHOT_INTERVAL=1m
           - BMS_SERVER_URL=stream.bitwave.tv
           - BMS_CDN_URL=cdn.stream.bitwave.tv
+          - FORCE_COLOR=1
         deploy:
           replicas: 1
           restart_policy:
             condition: any
             delay: 5s
             window: 10s
+
+
 networks:
-  frontend:
+  internal:
     external:
       name: bms-net

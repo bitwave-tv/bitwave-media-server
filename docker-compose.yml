@@ -4,7 +4,7 @@ version: '3'
 services:
   nginx-server:
     container_name: bms-nginx-server
-#    image: bms-nginx-server
+    image: bitwavetv/bms-nginx-server
     build: './nginx-server'
     ports:
       - "8080:8080"
@@ -17,7 +17,7 @@ services:
 
   api-server:
     container_name: bms-api-server
-#    image: bms-api-server
+    image: bitwavetv/bms-api-server
     build: './api-server'
     ports:
       - "3000:3000"
