@@ -1,6 +1,6 @@
 {
   "name": "bitwave-media-server",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "description": "bitwave media server",
   "main": "src/index.js",
   "scripts": {
@@ -8,9 +8,9 @@
     "watch": "tsc -w",
     "dev": "npx nodemon ./build",
     "start": "node ./build",
-    "docker:build": "docker build --cache-from bitwavetv/bitwave-media-server:builder --cache-from bitwavetv/bitwave-media-server:latest -t bitwavetv/bitwave-media-server:latest .",
+    "docker:build": "docker build -t bitwavetv/bms-api-server:latest .",
     "docker:up": "docker-compose up",
-    "docker:publish": "docker push bitwavetv/bitwave-media-server:latest",
+    "docker:publish": "docker push bitwavetv/bms-api-server:latest",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
