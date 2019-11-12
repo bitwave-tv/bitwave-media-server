@@ -1,28 +1,32 @@
 version: '3'
 services:
-    server:
-        # image: bitwavetv/bitwave-media-server
-        image: bms-nginx-server
-        ports:
-            - "8080:8080"
-            - "1935:1935"
-        networks:
-            - frontend
-        # volumes:
-            # - "~/db:/bitwave-media-server/db"
-            # - "./conf/service-account.json:/bitwave-media-server/conf/service-account.json"
-        environment:
-          - BMS_LOGLEVEL=4
-          - BMS_DEBUG=false
-          - BMS_TIMEZONE=America/Los_Angeles
-          - BMS_SNAPSHOT_INTERVAL=1m
-          - BMS_SERVER_URL=stream.bitwave.tv
-          - BMS_CDN_URL=cdn.stream.bitwave.tv
-        deploy:
-          replicas: 1
-          restart_policy:
-            condition: any
-            delay: 5s
-            window: 10s
+    nginx-server:
+      container_name: bms-nginx-server
+      # image: bitwavetv/bitwave-media-server
+      image: bms-nginx-server
+      ports:
+          - "8080:8080"
+          - "1935:1935"
+      networks:
+          - frontend
+      # volumes:
+          # - "~/db:/bitwave-media-server/db"
+          # - "./conf/service-account.json:/bitwave-media-server/conf/service-account.json"
+      environment:
+        - BMS_ENV=dev
+        - BMS_LOGLEVEL=4
+        - BMS_DEBUG=false
+        - BMS_TIMEZONE=America/Los_Angeles
+        - BMS_SNAPSHOT_INTERVAL=1m
+        - BMS_SERVER_URL=stream.bitwave.tv
+        - BMS_CDN_URL=cdn.stream.bitwave.tv
+      deploy:
+        replicas: 1
+        restart_policy:
+          condition: any
+          delay: 5s
+          window: 10s
 networks:
   frontend:
+    external:
+      name: bms-net

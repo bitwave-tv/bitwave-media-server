@@ -8,10 +8,6 @@
 'use strict';
 const path = require('path');
 
-// const __src = __dirname;
-// const __base = path.join(__dirname, '..');
-// const __public = path.join(__dirname, 'webserver', 'public');
-
 import * as config from './conf/config.json';
 import { envVar } from './classes/EnvVar';
 
@@ -39,7 +35,7 @@ webLogger.info (
 // setup and log environment vars
 envVar.init ( config );
 
-if ( process.env.DEBUG === 'true' ) webLogger.info( 'Debugging enabled. Check the /debug path in the web interface.', false );
+if ( process.env.DEBUG === 'true' ) webLogger.info( 'Debugging enabled.', false );
 
 envVar.list ( webLogger );
 
