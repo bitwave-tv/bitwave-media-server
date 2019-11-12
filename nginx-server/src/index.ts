@@ -27,7 +27,7 @@ webLogger.info ( `Starting [bitwave.tv] Media Server v${packageJson.version}` );
 
 webLogger.info (
   '\x1b[1m\x1b[32m'+
-  CFonts.render('[bitwave.tv]', {font: 'simple', color: '#0f0', align: 'center'}).string
+  CFonts.render('bitwave.tv NGINX', {font: 'simple', color: '#0f0', align: 'center'}).string
     +'\x1b[0m'
 );
 
