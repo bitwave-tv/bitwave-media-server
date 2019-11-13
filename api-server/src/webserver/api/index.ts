@@ -6,7 +6,7 @@ import * as chalk from 'chalk';
 import * as rp from 'request-promise';
 
 import logger from '../../classes/Logger';
-const webLogger = logger( 'APIv1' );
+const apiLogger = logger( 'APIv1' );
 
 import { streamAuth } from '../../classes/StreamAuth';
 
@@ -25,7 +25,9 @@ const control     = 'control';
 let liveTimers = [];
 
 export default app => {
-  // Authorize livestream
+  /**
+   * Authorize livestream
+   */
   app.post( '/stream/authorize', async ( req, res ) => {
     const app  = req.body.app;
     const name = req.body.name;
@@ -38,7 +40,7 @@ export default app => {
 
     if ( app !== 'live' ) {
       res.status( 200 )
-        .send( `Auth not required` );
+        .send( `${[app]} Auth not required` );
       return;
     }
 
@@ -47,20 +49,33 @@ export default app => {
       return;
     }
 
+    // Verify stream key
     const checkKey = await streamauth.checkStreamKey ( name, key );
 
     if ( checkKey ) {
+      // If authorized, pre-fetch archive status
+      const checkArchive = await streamauth.checkArchive( name );
+
       const timer = setTimeout( async () => {
+
+        // Update live status
         await streamauth.setLiveStatus( name, true, false );
+
+        // Check if we should archive stream
+        if ( !checkArchive ) {
+          apiLogger.info( `Archiving is disabled for ${chalk.cyanBright.bold(name)}}` );
+          return;
+        }
+
         // Start stream archive
         let response;
-        for ( let i = 0; i < 3; i++ ) {
+        for ( let i = 0; i < 6; i++ ) {
           response = await rp( `${host}/${control}/record/start?app=live&name=${name}&rec=archive` );
           if ( !response ) {
             await new Promise( resolve => setTimeout( resolve, 1000 * 10 ) );
-            console.log( `${chalk.redBright('Failed to start archive')}, attempting again in 10 seconds (${i}/3)` );
+            apiLogger.info( `${chalk.redBright('Failed to start archive')}, attempting again in 10 seconds (${i}/6)` );
           } else {
-            console.log( `Archiving ${chalk.cyanBright.bold(name)} to ${chalk.greenBright(response)}` );
+            apiLogger.info( `Archiving ${chalk.cyanBright.bold(name)} to ${chalk.greenBright(response)}` );
             break;
           }
         }
@@ -71,17 +86,19 @@ export default app => {
         timer: timer,
       });
 
-      webLogger.info( `[${app}] ${chalk.cyanBright.bold(name)} authorized.` );
+      apiLogger.info( `[${app}] ${chalk.cyanBright.bold(name)} authorized.` );
       res.status( 200 )
         .send( `${name} authorized.` );
     } else {
-      webLogger.info( `[${app}] ${chalk.redBright.bold(name)} denied.` );
+      apiLogger.info( `[${app}] ${chalk.redBright.bold(name)} denied.` );
       res.status( 403 )
         .send( `${name} denied.` );
     }
   });
 
-  // Transcoded stream start
+  /**
+   * Transcoded stream start
+   */
   app.post( '/stream/transcode', async ( req, res ) => {
     const user = req.body.user;
     const app  = req.body.app;
@@ -90,14 +107,16 @@ export default app => {
     if ( user ) {
       setTimeout( async () => {
         await streamauth.setLiveStatus( user, true, true );
-        console.log(`[${app}] ${chalk.cyanBright.bold(user)} is now ${chalk.greenBright.bold('transcoded')}.`);
+        apiLogger.info(`[${app}] ${chalk.cyanBright.bold(user)} is now ${chalk.greenBright.bold('transcoded')}.`);
       }, updateDelay * 1000 );
     }
     res.status( 200 )
       .send( `[${app}|${name}] is transcoding ${user}.` );
   });
 
-  // Livestream disconnect
+  /**
+   * Livestream disconnect
+   */
   app.post( '/stream/end', async ( req, res ) => {
     const app  = req.body.app;
     const name = req.body.name;
@@ -115,43 +134,59 @@ export default app => {
 
       // Set offline status
       await streamauth.setLiveStatus( name, false );
-      console.log( `[${app}] ${chalk.cyanBright.bold(name)} stopped streaming.` );
+      console.log( `[${app}] ${chalk.cyanBright.bold(name)} is going ${chalk.redBright.bold('OFFLINE')}.` );
       res.status( 201 )
         .send( `[${app}] ${name} is now OFFLINE` );
     }
   });
 
-  // Start transcoding stream
+  /**
+   * Start transcoding stream
+   */
   app.post( '/stream/start-transcode', async ( req, res ) => {
     const user = req.body.user;
-    console.log( `${chalk.cyanBright.bold(user)} will be transcoded... Starting transcoders...` );
+    apiLogger.info( `${chalk.cyanBright.bold(user)} will be transcoded... Starting transcoders...` );
     transcode.startTranscoder( user );
     res.status( 200 )
       .send( `${chalk.cyanBright.bold(user)} is now being transcoded.` );
   });
 
-  // Stop transcoding stream
+  /**
+   * Stop transcoding stream
+   */
   app.post( '/stream/stop-transcode', async ( req, res ) => {
     const user = req.body.user;
-    console.log( `${chalk.cyanBright.bold(user)} will no longer be transcoded.` );
+    apiLogger.info( `${chalk.cyanBright.bold(user)} will no longer be transcoded.` );
 
     // Revert streamer endpoint
     await streamauth.setLiveStatus( user, true, false );
-    console.log( `${chalk.cyanBright.bold(user)}'s endpoint has been reverted` );
+    apiLogger.info( `${chalk.cyanBright.bold(user)}'s endpoint has been reverted` );
 
     transcode.stopTranscoder( user );
-    console.log( `${chalk.cyanBright.bold(user)}'s transcoding process has been stopped.` );
+    apiLogger.info( `${chalk.cyanBright.bold(user)}'s transcoding process has been stopped.` );
 
     res.status( 200 )
       .send(`${user} is no longer being transcoded.`);
   });
 
-  // Transcoded stream stats
+  /**
+   * Transcoded stream stats
+   */
   app.get( '/stream/stats', async ( req, res ) => {
     res.status( 200 )
       .send( transcode.transcoders.map( t => ({ user: t.user, data: t.data }) ) );
   });
 
-  // TODO: create API endpoint /stream/stats/{streamer}
+  /**
+   * Transcoded stream stats for single user
+   */
+  app.get( '/stream/stats/:user', async ( req, res ) => {
+    res.status( 200 )
+      .send( transcode.transcoders.map( stats => {
+        if ( stats.user.toLowerCase() === req.params.user.toLowerCase() ) {
+          return { user: stats.user, data: stats.data }
+        }
+      }));
+  });
 
 };

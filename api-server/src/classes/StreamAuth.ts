@@ -8,9 +8,6 @@ const log = logger('AUTH');
 import * as chalk from 'chalk';
 import * as admin from 'firebase-admin';
 
-// Disable FireBase in dev
-const DEV  = process.env['BMS_ENV'] === 'dev';
-
 // Do not attempt to log credentials for CI/CD pipeline
 const CICD = process.env['CICD'] === 'true';
 if ( !CICD ) {
@@ -52,11 +49,11 @@ class StreamAuth {
       if ( key === undefined )
         log.info( `${username} does not have a key! (undefined)` );
       else
-        log.info( `${chalk.bgRedBright.black('ERROR:')} ${username}'s key is invalid! '${key}'` );
+        log.info( `${chalk.bgRedBright.black(' ERROR: ')} ${username}'s key is invalid! '${key}'` );
 
       return null;
     } else {
-      log.info( `${chalk.bgRedBright.black('ERROR:')}  User ${chalk.bgYellowBright(username)} could not be found!` );
+      log.info( `${chalk.bgRedBright.black(' ERROR: ')}  User ${chalk.bgYellowBright(username)} could not be found!` );
       return undefined;
     }
   };
@@ -69,30 +66,36 @@ class StreamAuth {
    */
   async checkStreamKey ( username: string, key: string ) {
     if ( !key ) {
-      log.info( `${chalk.bgRedBright.black('ERROR:')} ${username} did not provide a streamkey.` );
+      log.info( `${chalk.bgRedBright.black(' ERROR: ')} ${username} did not provide a streamkey.` );
       return false;
     }
 
     const streamKey = await this.getStreamKey( username );
     if ( !streamKey ) {
-      log.info(`${chalk.bgRedBright.black('ERROR:')} ${username} does not have a stream key` );
+      log.info(`${chalk.bgRedBright.black(' ERROR: ')} ${username} does not have a stream key` );
       return false;
     }
 
     if ( key !== streamKey ) {
-      log.info( `${chalk.bgRedBright.black('ERROR:')} ${username} supplied an invalid streamkey` );
+      log.info( `${chalk.bgRedBright.black(' ERROR: ')} ${username} supplied an invalid streamkey` );
       return false;
     }
 
     if ( key === streamKey ) {
-      log.info( `${chalk.bgGreenBright.black('SUCCESS:')} ${username}'s stream authorized` );
+      log.info( `${chalk.bgGreenBright.black(' SUCCESS: ')} ${username}'s stream authorized` );
       return true;
     }
 
-    log.info( `${chalk.bgRedBright.black('ERROR:')} Unknown fail condiiton while attempting to authorize stream!` );
+    log.info( `${chalk.bgRedBright.black(' ERROR: ')} Unknown fail condiiton while attempting to authorize stream!` );
     return false;
   };
 
+  /**
+   * Set streamer live status and transcode status
+   * @param username - Streamer's username
+   * @param state - LIVE / OFFLINE status
+   * @param transcoded - Transcode status
+   */
   async setLiveStatus ( username: string, state: boolean, transcoded?: boolean ) {
     const streamRef = admin.firestore().collection( 'streams' ).doc( username.toLowerCase() );
     const doc = await streamRef.get();
@@ -117,6 +120,19 @@ class StreamAuth {
 
     log.info( `${chalk.cyanBright(username)} is now ${ state ? chalk.greenBright.bold('LIVE') : chalk.redBright.bold('OFFLINE') }` );
   };
+
+  async checkArchive( username: string ): Promise<boolean> {
+    const streamRef = admin.firestore().collection( 'streams' ).doc( username.toLowerCase() );
+    const doc = await streamRef.get();
+
+    if ( !doc.exists ) {
+      log.info( `${chalk.bgRedBright.black('ERROR:')} ${username} is not a valid streamer` );
+      return;
+    }
+
+    const data = doc.data();
+    return !!data.archive;
+  }
 }
 
 export const streamAuth = config => new StreamAuth( config );

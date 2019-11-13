@@ -53,7 +53,7 @@ nginxRtmp ( config )
     process.env.RS_HTTPS === 'true'
   )
   .then (
-    () => console.log( `NGINX-RTMP STARTED` )
+    () => webLogger.info( `NGINX-RTMP STARTED` )
   )
   .catch (
     error => webLogger.error( `Error starting webserver and nginx for application:\n${error}` )
