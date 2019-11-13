@@ -48,6 +48,14 @@ envVar.list ( webLogger );
 // bail out if there are errors
 if ( envVar.hasErrors() ) process.exit();
 
+
+if ( process.env['CICD'] === 'true' ) {
+  setTimeout( () => {
+    process.exit( 0 );
+  }, 5 * 1000 );
+}
+
+
 // start the app
 const server = bitwaveMediaServer ( __public );
 server.startWebserver();
