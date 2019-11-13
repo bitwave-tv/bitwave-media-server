@@ -8,18 +8,17 @@
 'use strict';
 
 import logger from '../../classes/Logger';
-const webLogger = logger( 'webserver' );
+const webLogger = logger( 'API' );
 
 export default ( req, res, next ) => {
   req._startTime = new Date();
   const log = () => {
     const code: number = res.statusCode;
-    const len: number = parseInt( res.getHeader( 'Content-Length' ), 10 );
-    const duration: number = new Date().getTime() - req._startTime.getTime();
-    const url: string = ( req.originalUrl || req.url );
+    const url: string  = ( req.originalUrl || req.url );
 
     webLogger.debug( `${req.method} "${url}" ${code} ${req.ip}` );
-    if ( req.body ) webLogger.debug( JSON.stringify( req.body ) );
+
+    if ( req.body ) webLogger.debug( `${req.body.app}|${req.body.name}` );
   };
 
   res.on ( 'finish', log );

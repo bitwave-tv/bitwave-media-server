@@ -24,28 +24,28 @@ class Transcoder {
     // Check for existing transcoders
     const transcoder = this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() );
     if ( transcoder && transcoder.process !== null ) {
-      console.log(`${user} is already being transcoded.`);
+      console.log( `${user} is already being transcoded.` );
       return;
     }
 
     let ffmpeg;
     // let ffprobe;
 
-    console.log(`Start transcoding ${user}`);
+    console.log( `Start transcoding ${user}` );
 
     const inputStream  = `rtmp://nginx-server/live/${user}`;
     const outputStream = `rtmp://nginx-server/transcode/${user}`;
 
-    ffmpeg = new FfmpegCommand(inputStream, { stdoutLines: 1 });
+    ffmpeg = new FfmpegCommand( inputStream, { stdoutLines: 1 } );
 
-    ffmpeg.input(inputStream);
+    ffmpeg.input( inputStream );
     ffmpeg.inputOptions([
       '-re',
       '-err_detect ignore_err',
       '-stats',
     ]);
 
-    ffmpeg.output(`${outputStream}_144`);
+    ffmpeg.output( `${outputStream}_144` );
     ffmpeg.outputOptions([
       '-f flv',
       '-map_metadata -1',
@@ -74,9 +74,9 @@ class Transcoder {
 
       // '-profile:v {profile}', // profile
       '-tune zerolatency', // tune
-    ]).size('256x144').autopad();
+    ]).size( '256x144' ).autopad();
 
-    ffmpeg.output(`${outputStream}_480`);
+    ffmpeg.output( `${outputStream}_480` );
     ffmpeg.outputOptions([
       '-f flv',
       '-map_metadata -1',
@@ -105,9 +105,9 @@ class Transcoder {
 
       // '-profile:v {profile}', // profile
       '-tune zerolatency', // tune
-    ]).size('854x480').autopad();
+    ]).size( '854x480' ).autopad();
 
-    ffmpeg.output(`${outputStream}_src?user=${user}`);
+    ffmpeg.output( `${outputStream}_src?user=${user}` );
     ffmpeg.outputOptions([
       // Global
       '-f flv',
@@ -127,9 +127,9 @@ class Transcoder {
     ]);
 
     ffmpeg
-      .on('start', (commandLine) => {
-        console.log(`Starting transcode stream.`);
-        console.log(commandLine);
+      .on( 'start', commandLine => {
+        console.log( `Starting transcode stream.` );
+        console.log( commandLine );
         this.transcoders.push({
           user: user,
           process: ffmpeg,
@@ -142,22 +142,22 @@ class Transcoder {
         });
       })
 
-      .on('end', () => {
+      .on( 'end', () => {
         console.log(`Stream transcoding ended.`);
         this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() ).process = null;
         // retry
       })
 
-      .on('error', (error, stdout, stderr) => {
-        console.log(`Stream transcoding error!`);
-        console.log(error);
-        console.log(stdout);
-        console.log(stderr);
+      .on( 'error', ( error, stdout, stderr ) => {
+        console.log( `Stream transcoding error!` );
+        console.log( error );
+        console.log( stdout );
+        console.log( stderr );
         this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() ).process = null;
         // retry
       })
 
-      .on('progress', (progress) => {
+      .on( 'progress', progress => {
         this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() ).data = {
           frames: progress.frames,
           fps: progress.currentFps,
@@ -170,13 +170,13 @@ class Transcoder {
     ffmpeg.run();
   }
 
-  stopTranscoder (user) {
+  stopTranscoder ( user ) {
     const transcoder = this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() );
-    if (transcoder.process !== null) {
-      transcoder.process.kill('SIGKILL');
-      console.log(`Stopping transcoder!`);
+    if ( transcoder.process !== null ) {
+      transcoder.process.kill( 'SIGKILL' );
+      console.log( `Stopping transcoder!` );
     } else {
-      console.log(`Transcoding process not running for ${user}.`)
+      console.log( `Transcoding process not running for ${user}.` )
     }
   }
 

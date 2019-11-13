@@ -61,13 +61,13 @@ export default app => {
           }
         }
       }, updateDelay * 1000 );
-      webLogger.info(`[${app}] \x1b[1m\x1b[36m${name}\x1b[0m authorized.`);
-      res.status(200)
-        .send(`${name} authorized.`);
+      webLogger.info( `[${app}] \x1b[1m\x1b[36m${name}\x1b[0m authorized.` );
+      res.status( 200 )
+        .send( `${name} authorized.` );
     } else {
-      webLogger.info(`[${app}] ${name} denied.`);
-      res.status(403)
-        .send(`${name} denied.`);
+      webLogger.info( `[${app}] ${name} denied.` );
+      res.status( 403 )
+        .send( `${name} denied.` );
     }
   });
 

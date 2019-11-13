@@ -68,7 +68,7 @@ class Logger {
     let time = moment().tz( timezone ).format( 'DD-MM-YYYY HH:mm:ss.SSS' );
     let logline = '';
     if ( context )
-      logline = `[${time}] [${type.padStart(5, ' ')}] [${context.padStart(10, ' ')}] ${message}`;
+      logline = `[${time}] [${type.padStart(5, ' ')}] [${context.padStart(5, ' ')}] ${message}`;
     else
       logline = `[${time}] [${type.padStart(5, ' ')}] ${message}`;
     return logline;
