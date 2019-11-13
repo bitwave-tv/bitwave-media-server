@@ -7,4 +7,3 @@ if [ "$DEBUG" = "true" ]; then
 fi
 
 npm start
-#npm run dev
