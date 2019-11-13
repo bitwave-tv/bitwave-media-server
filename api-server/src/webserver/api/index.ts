@@ -6,13 +6,13 @@ import * as chalk from 'chalk';
 import * as rp from 'request-promise';
 
 import logger from '../../classes/Logger';
-const webLogger = logger( 'API' );
+const webLogger = logger( 'APIv1' );
 
 import { streamAuth } from '../../classes/StreamAuth';
 
 const streamauth = streamAuth({
-  hostServer : process.env['BMS_SERVER_URL'] || 'stream.bitrave.tv',
-  cdnServer  : process.env['BMS_CDN_URL']    || 'cdn.stream.bitrave.tv',
+  hostServer : process.env['BMS_SERVER'] || 'stream.bitrave.tv',
+  cdnServer  : process.env['BMS_CDN']    || 'cdn.stream.bitrave.tv',
 });
 
 import { Transcoder } from '../../classes/Transcoder';

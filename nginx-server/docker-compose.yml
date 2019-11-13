@@ -27,9 +27,8 @@ services:
       - BMS_LOGLEVEL=4
       - BMS_DEBUG=false
       - BMS_TIMEZONE=America/Los_Angeles
-      - BMS_SNAPSHOT_INTERVAL=1m
-      - BMS_SERVER_URL=stream.bitwave.tv
-      - BMS_CDN_URL=cdn.stream.bitwave.tv
+      - BMS_SERVER=stream.bitwave.tv
+      - BMS_CDN=cdn.stream.bitwave.tv
       - FORCE_COLOR=1
 
     deploy:

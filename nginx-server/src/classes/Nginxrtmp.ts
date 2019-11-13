@@ -12,6 +12,7 @@ import logger from './Logger';
 
 import * as Q from 'q';
 import * as rp from 'request-promise';
+import * as chalk from 'chalk';
 
 let abort;
 
@@ -40,7 +41,7 @@ class Nginxrtmp {
    * @returns {Promise.<boolean>}
    */
   async start ( useSSL?: boolean ) {
-    this.logger.info( 'Starting NGINX ...' );
+    this.logger.info( 'Starting NGINX . . .' );
     let timeout = 250;
     abort = false;
 
@@ -90,14 +91,14 @@ class Nginxrtmp {
       if (this.allowRestart === true) {
         let self = this;
         setTimeout(() => {
-          self.logger.info('Trying to restart NGINX ...');
+          self.logger.info('Trying to restart NGINX . . .');
           self.start();
         }, timeout);
       }
     });
 
     this.process.on('error', err => {
-      this.logger.error(`Failed to spawn NGINX process: ${err.name}: ${err.message}`);
+      this.logger.error(`Failed to spawn NGINX process:\n${err.name}: ${err.message}`);
     });
 
     let running = false;
@@ -105,7 +106,7 @@ class Nginxrtmp {
     while ( !running ) {
       running = await this.isRunning( timeout );
       if ( abort === true ) {
-        this.logger.info( 'Aborted' );
+        this.logger.info( chalk.bgRedBright.black( ' Aborted! ' ) );
         break;
       }
     }

@@ -19,15 +19,14 @@ services:
 
     # Mount API creds
     volumes:
-      - "/srv/creds/service-account.json:/api-server/creds/service-account.json"
+      - /srv/creds:/api-server/creds
 
     environment:
       - BMS_ENV=dev
       - BMS_LOGLEVEL=4
       - BMS_TIMEZONE=America/Los_Angeles
-      - BMS_SNAPSHOT_INTERVAL=1m
-      - BMS_SERVER_URL=stream.bitwave.tv
-      - BMS_CDN_URL=cdn.stream.bitwave.tv
+      - BMS_SERVER=stream.bitwave.tv
+      - BMS_CDN=cdn.stream.bitwave.tv
       - FORCE_COLOR=1
 
     deploy:

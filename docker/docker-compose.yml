@@ -28,8 +28,8 @@ services:
       - BMS_ENV=dev
       - BMS_LOGLEVEL=4
       - BMS_TIMEZONE=America/Los_Angeles
-      - BMS_SERVER_URL=stream.bitwave.tv
-      - BMS_CDN_URL=cdn.stream.bitwave.tv
+      - BMS_SERVER=stream.bitwave.tv
+      - BMS_CDN=cdn.stream.bitwave.tv
 
 
   # API Server Configuration
@@ -55,8 +55,8 @@ services:
       - BMS_ENV=dev
       - BMS_LOGLEVEL=4
       - BMS_TIMEZONE=America/Los_Angeles
-      - BMS_SERVER_URL=stream.bitwave.tv
-      - BMS_CDN_URL=cdn.stream.bitwave.tv
+      - BMS_SERVER=stream.bitwave.tv
+      - BMS_CDN=cdn.stream.bitwave.tv
 
 
 # Network Definitions

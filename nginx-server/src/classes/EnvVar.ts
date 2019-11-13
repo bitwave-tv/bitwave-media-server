@@ -45,14 +45,16 @@ class EnvVar {
       if ( envVar.name in process.env ) {
         // Cover blacklisted values
         let value = process.env[envVar.name];
+
         if ( logBlacklist.indexOf( envVar.name ) !== -1 ) value = '******';
+
         this.log(`${envVar.name} = ${value} - ${envVar.description}`, 'info');
       } else {
         if ( envVar.required === true ) {
           this.log( `${envVar.name} not set, but required`, 'error' );
           this.errors = true;
         } else {
-          this.log( `${envVar.name} = ${envVar.defaultValue} (using default) - ${envVar.description}`, 'info' );
+          this.log( `${envVar.name} = ${envVar.defaultValue} (default) - ${envVar.description}`, 'info' );
           process.env[envVar.name] = envVar.defaultValue;
         }
       }

@@ -7,8 +7,10 @@
 
 'use strict';
 
+import * as chalk from 'chalk';
+
 import logger from '../../classes/Logger';
-const webLogger = logger( 'API' );
+const webLogger = logger( 'EXPRS' );
 
 export default ( req, res, next ) => {
   req._startTime = new Date();
@@ -16,12 +18,13 @@ export default ( req, res, next ) => {
     const code: number = res.statusCode;
     const url: string  = ( req.originalUrl || req.url );
 
-    webLogger.debug( `${req.method} "${url}" ${code} ${req.ip}` );
+    webLogger.debug( `${req.method} ${code} '${url}'` ); // req.ip
 
-    if ( req.body ) webLogger.debug( `${req.body.app}|${req.body.name}` );
+    if ( req.body ) webLogger.debug( `[${req.body.app}] ${chalk.cyanBright(req.body.name)}` );
   };
 
   res.on ( 'finish', log );
-  res.on ( 'close', log );
+  res.on ( 'close',  log );
+
   next();
 };

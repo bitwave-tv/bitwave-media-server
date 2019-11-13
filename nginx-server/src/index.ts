@@ -21,7 +21,7 @@ import nginxRtmp from './classes/Nginxrtmp';
 import logger from './classes/Logger';
 
 // Setup Logger
-const webLogger = logger( './src/webserver' );
+const webLogger = logger( 'BOOT' );
 
 // show start message
 webLogger.info ( `Starting [bitwave.tv] Media Server ${chalk.bold.greenBright (`v${packageJson.version}`)}` );

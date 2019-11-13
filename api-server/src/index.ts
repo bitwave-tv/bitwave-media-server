@@ -22,7 +22,7 @@ const packageJson = require('../package.json');
 import { bitwaveMediaServer } from './webserver/server';
 import logger from './classes/Logger';
 
-const webLogger = logger( './webserver' );
+const webLogger = logger( 'BOOT' );
 
 // show start message
 webLogger.info ( `Starting [bitwave.tv] Media Server ${chalk.bold.greenBright (`v${packageJson.version}`)}` );

@@ -13,13 +13,15 @@ import { AddressInfo } from 'net';
 import * as bodyParser from 'body-parser';
 import * as compression from 'compression';
 
+import * as chalk from 'chalk';
+
 // other
 import * as path from 'path';
 import * as Q from 'q';
 
 // modules
 import logger from '../classes/Logger';
-const nodeLogger = logger ( 'node' );
+const nodeLogger = logger ( 'EXPRS' );
 
 import apiRouter from './api';
 // const apiV1 = require('./controllers/api/v1');
@@ -90,7 +92,7 @@ class BitwaveMediaServer {
    */
   add404ErrorHandling () {
     this.app.use( ( req, res, next ) => {
-      const err = new Error( `[404] Page Not Found ${req.url}` );
+      const err = new Error( chalk.gray( `[404] Error ${req.url}` ) );
       res.status( 404 );
       next( err );
     });
@@ -113,11 +115,11 @@ class BitwaveMediaServer {
    */
   startWebserver () {
     const deferred = Q.defer();
-    nodeLogger.info ( 'Starting Node.js server ...' );
+    nodeLogger.info ( 'Starting Node.js API server . . .' );
     this.app.set( 'port', process.env.BMS_NODEJS_PORT );
     const server = this.app.listen ( this.app.get ( 'port' ), () => {
       this.app.set ( 'server', server.address() );
-      nodeLogger.info( `Node.js running on ${process.env.BMS_NODEJS_PORT}` );
+      nodeLogger.info( `Node.js API server running on ${process.env.BMS_NODEJS_PORT}` );
       deferred.resolve( (server.address() as AddressInfo).port );
     });
     return deferred.promise;
@@ -138,7 +140,7 @@ class BitwaveMediaServer {
    * prod config for the express app
    */
   initProd () {
-    nodeLogger.debug ( 'Init webserver with PROD environment' );
+    nodeLogger.debug ( 'Starting API server - PROD environment' );
     this.initAlways();
     this.app.get ( '/', ( req, res ) => {
       res.sendFile ( path.join ( this.__public, 'index.prod.html' ) );
@@ -151,7 +153,7 @@ class BitwaveMediaServer {
    * dev config for the express app
    */
   initDev () {
-    nodeLogger.debug ( 'Init webserver with DEV environment' );
+    nodeLogger.debug ( 'Starting API server - DEV environment' );
     this.initAlways();
     this.app.get ( '/', ( req, res ) => {
       res.sendFile ( path.join ( this.__public, 'index.dev.html' ) );
