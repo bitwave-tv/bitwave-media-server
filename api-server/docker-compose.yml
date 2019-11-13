@@ -17,6 +17,7 @@ services:
           - bms-api-server
           - api-server
 
+    # Mount API creds
     volumes:
       - "/srv/creds/service-account.json:/api-server/creds/service-account.json"
 

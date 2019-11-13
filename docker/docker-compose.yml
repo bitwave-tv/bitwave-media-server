@@ -19,8 +19,9 @@ services:
           - bms-nginx-server
           - nginx-server
 
+    # Mount Archives Directory
     volumes:
-      - archive-volume:/archives/
+      - /srv/archives:/archives
 
     environment:
       - FORCE_COLOR=1
@@ -45,8 +46,9 @@ services:
           - bms-api-server
           - api-server
 
+    # Mount API creds
     volumes:
-      - "/srv/creds/service-account.json:/api-server/creds/service-account.json"
+      - /srv/creds:/api-server/creds
 
     environment:
       - FORCE_COLOR=1
@@ -62,7 +64,3 @@ networks:
   internal:
     external:
       name: bms-net
-
-volumes:
-  archive-volume:
-    com.bitwave.description: "Livestream Archives"

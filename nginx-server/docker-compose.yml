@@ -18,8 +18,9 @@ services:
           - bms-nginx-server
           - nginx-server
 
+    # Mount Archives Directory
     volumes:
-      - archive-volume:/archives/
+      - /srv/archives:/archives
 
     environment:
       - BMS_ENV=dev
@@ -44,7 +45,3 @@ networks:
   internal:
     external:
       name: bms-net
-
-volumes:
-  archive-volume:
-    com.bitwave.description: "Livestream Archives"
