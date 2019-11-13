@@ -47,6 +47,8 @@ RUN cd /bms-nginx-server && \
 
 EXPOSE 1935 8080
 
-#VOLUME ["/bitwave-media-server/db"]
+# VOLUME ["/bitwave-media-server/db"]
 
-CMD ["./run.sh"]
+# CMD ["./run.sh"]
+
+CMD ["npm", "start"]

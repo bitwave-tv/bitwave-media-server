@@ -6,12 +6,16 @@
 // const webLogger = logger('webserver');
 
 import * as admin from 'firebase-admin';
-const serviceAccount = require('../../creds/service-account.json');
 
-admin.initializeApp({
-  credential: admin.credential.cert( serviceAccount ),
-  databaseURL: 'https://bitwave-7f415.firebaseio.com',
-});
+const CICD = process.env['CICD'] === 'true';
+
+if ( !CICD ) {
+  const serviceAccount = require('../../creds/service-account.json');
+  admin.initializeApp({
+    credential: admin.credential.cert( serviceAccount ),
+    databaseURL: 'https://bitwave-7f415.firebaseio.com',
+  });
+}
 
 const hlsStream  = `hls`;
 const transcodeStream = `transcode`;

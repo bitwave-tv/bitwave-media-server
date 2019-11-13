@@ -46,6 +46,8 @@ RUN cd /bms-api-server && \
 
 EXPOSE 3000
 
-#VOLUME ["/bitwave-media-server/db"]
+# VOLUME ["/bitwave-media-server/db"]
 
-CMD ["./run.sh"]
+# CMD ["./run.sh"]
+
+CMD ["npm", "start"]
