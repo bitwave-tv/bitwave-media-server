@@ -8,7 +8,6 @@
 
 import * as fs from 'fs';
 import * as moment from 'moment-timezone';
-import * as chalk from 'chalk';
 
 const LEVEL_MUTE  = 0;
 const LEVEL_ERROR = 1;
