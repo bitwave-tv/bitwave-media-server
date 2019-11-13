@@ -4,7 +4,7 @@ version: '3'
 services:
     api-server:
         container_name: bms-api-server-dev
-        image: bitwavetv/bms-api-server
+        image: bitwavetv/bms-api-server:latest
         ports:
           - "3000:3000"
         networks:
@@ -12,7 +12,7 @@ services:
             aliases:
               - bms-api-server
         volumes:
-          - "./creds/service-account.json:/bms-api-server/creds/service-account.json"
+          - "../creds/service-account.json:/bms-api-server/creds/service-account.json"
         environment:
           - BMS_ENV=dev
           - BMS_LOGLEVEL=4

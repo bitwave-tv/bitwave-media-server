@@ -4,7 +4,7 @@ version: '3'
 services:
   nginx-server:
     container_name: bms-nginx-server
-    image: bitwavetv/bms-nginx-server
+    image: bitwavetv/bms-nginx-server:latest
     build: './nginx-server'
     ports:
       - "8080:8080"
@@ -13,11 +13,16 @@ services:
       - internal
     environment:
       - FORCE_COLOR=1
+      - BMS_ENV=dev
+      - BMS_LOGLEVEL=4
+      - BMS_TIMEZONE=America/Los_Angeles
+      - BMS_SERVER_URL=stream.bitwave.tv
+      - BMS_CDN_URL=cdn.stream.bitwave.tv
 
 
   api-server:
     container_name: bms-api-server
-    image: bitwavetv/bms-api-server
+    image: bitwavetv/bms-api-server:latest
     build: './api-server'
     ports:
       - "3000:3000"
@@ -27,6 +32,11 @@ services:
       - "./creds/service-account.json:/bms-api-server/creds/service-account.json"
     environment:
       - FORCE_COLOR=1
+      - BMS_ENV=dev
+      - BMS_LOGLEVEL=4
+      - BMS_TIMEZONE=America/Los_Angeles
+      - BMS_SERVER_URL=stream.bitwave.tv
+      - BMS_CDN_URL=cdn.stream.bitwave.tv
 
 
 networks:

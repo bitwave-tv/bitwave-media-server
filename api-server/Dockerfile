@@ -10,7 +10,6 @@ COPY --from=bitwavetv/skylight:latest /usr/local/lib /usr/local/lib
 RUN apt-get update && \
     apt-get install -y \
         ca-certificates \
-        git \
         procps \
         libpcre3 \
         openssl \
@@ -21,7 +20,6 @@ RUN apt-get update && \
         alsa-utils
 
 RUN apt-get remove -y \
-        git \
         curl && \
         apt autoremove -y
 
@@ -31,7 +29,7 @@ RUN mkdir -p /tmp/hls && \
     mkdir -p /archives/rec
 
 # Install global npm packages
-RUN npm install -g typescript
+# RUN npm install -g typescript
 
 # Install npm packages
 COPY package.json package-lock.json tsconfig.json /bms-api-server/

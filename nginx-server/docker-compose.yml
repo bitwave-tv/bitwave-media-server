@@ -4,7 +4,7 @@ version: '3'
 services:
     nginx-server:
       container_name: bms-nginx-server-dev
-      image: bitwavetv/bms-nginx-server
+      image: bitwavetv/bms-nginx-server:latest
       ports:
           - "8080:8080"
           - "1935:1935"
