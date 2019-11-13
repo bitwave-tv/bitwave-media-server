@@ -33,8 +33,8 @@ class Transcoder {
 
     console.log(`Start transcoding ${user}`);
 
-    const inputStream  = `rtmp://localhost/live/${user}`;
-    const outputStream = `rtmp://localhost/transcode/${user}`;
+    const inputStream  = `rtmp://bms-nginx-server:8080/live/${user}`;
+    const outputStream = `rtmp://bms-nginx-server:8080/transcode/${user}`;
 
     ffmpeg = new FfmpegCommand(inputStream, { stdoutLines: 1 });
 
