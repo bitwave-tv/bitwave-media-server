@@ -17,7 +17,7 @@ const transcode = new Transcoder();
 import * as rp from 'request-promise';
 
 const updateDelay = 10;
-const host        = 'http://bms-nginx-server:8080';
+const host        = 'http://nginx-server:8080';
 const control     = 'control';
 
 export default app => {

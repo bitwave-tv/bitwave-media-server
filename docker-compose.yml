@@ -10,7 +10,10 @@ services:
       - "8080:8080"
       - "1935:1935"
     networks:
-      - internal
+      internal:
+        aliases:
+          - bms-nginx-server
+          - nginx-server
     environment:
       - FORCE_COLOR=1
       - BMS_ENV=dev
@@ -27,7 +30,10 @@ services:
     ports:
       - "3000:3000"
     networks:
-      - internal
+      internal:
+        aliases:
+          - bms-api-server
+          - api-server
     volumes:
       - "./creds/service-account.json:/bms-api-server/creds/service-account.json"
     environment:

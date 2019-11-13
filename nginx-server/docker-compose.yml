@@ -12,6 +12,7 @@ services:
         internal:
           aliases:
             - bms-nginx-server
+            - nginx-server
       # volumes:
           # - "~/db:/bitwave-media-server/db"
           # - "./conf/service-account.json:/bitwave-media-server/conf/service-account.json"

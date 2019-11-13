@@ -11,6 +11,7 @@ services:
           internal:
             aliases:
               - bms-api-server
+              - api-server
         volumes:
           - "../creds/service-account.json:/bms-api-server/creds/service-account.json"
         environment:
