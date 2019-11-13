@@ -16,8 +16,8 @@ var Transcoder = /** @class */ (function () {
         var ffmpeg;
         // let ffprobe;
         console.log("Start transcoding " + user);
-        var inputStream = "rtmp://localhost/live/" + user;
-        var outputStream = "rtmp://localhost/transcode/" + user;
+        var inputStream = "rtmp://nginx-server/live/" + user;
+        var outputStream = "rtmp://nginx-server/transcode/" + user;
         ffmpeg = new FfmpegCommand(inputStream, { stdoutLines: 1 });
         ffmpeg.input(inputStream);
         ffmpeg.inputOptions([

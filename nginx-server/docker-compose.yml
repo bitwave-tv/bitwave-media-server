@@ -1,37 +1,43 @@
 version: '3'
 
-
+# Microservices
 services:
-    nginx-server:
-      container_name: bms-nginx-server-dev
-      image: bitwavetv/bms-nginx-server:latest
-      ports:
-          - "8080:8080"
-          - "1935:1935"
-      networks:
-        internal:
-          aliases:
-            - bms-nginx-server
-            - nginx-server
-      # volumes:
-          # - "~/db:/bitwave-media-server/db"
-          # - "./conf/service-account.json:/bitwave-media-server/conf/service-account.json"
-      environment:
-        - BMS_ENV=dev
-        - BMS_LOGLEVEL=4
-        - BMS_DEBUG=false
-        - BMS_TIMEZONE=America/Los_Angeles
-        - BMS_SNAPSHOT_INTERVAL=1m
-        - BMS_SERVER_URL=stream.bitwave.tv
-        - BMS_CDN_URL=cdn.stream.bitwave.tv
-        - FORCE_COLOR=1
-      deploy:
-        replicas: 1
-        restart_policy:
-          condition: any
-          delay: 5s
-          window: 10s
 
+  # NGINX-RTMP Server Configuration
+  nginx-server:
+    container_name: bms-nginx-server-dev
+    image: bitwavetv/bms-nginx-server:latest
+
+    ports:
+      - "8080:8080"
+      - "1935:1935"
+
+    networks:
+      internal:
+        aliases:
+          - bms-nginx-server
+          - nginx-server
+
+    # volumes:
+        # - "~/db:/bitwave-media-server/db"
+        # - "./conf/service-account.json:/bitwave-media-server/conf/service-account.json"
+
+    environment:
+      - BMS_ENV=dev
+      - BMS_LOGLEVEL=4
+      - BMS_DEBUG=false
+      - BMS_TIMEZONE=America/Los_Angeles
+      - BMS_SNAPSHOT_INTERVAL=1m
+      - BMS_SERVER_URL=stream.bitwave.tv
+      - BMS_CDN_URL=cdn.stream.bitwave.tv
+      - FORCE_COLOR=1
+
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        window: 10s
 
 networks:
   internal:

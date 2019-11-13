@@ -32,8 +32,8 @@ const fontOptions = {
   space: false,
 };
 
-console.log ( chalk.bold.greenBright ( CFonts.render('bitwave.tv',fontOptions).string ) );
-console.log ( chalk.bold.cyan        ( CFonts.render('NGINX', fontOptions).string ) + '\n' );
+console.log ( chalk.bold.greenBright ( CFonts.render( 'bitwave.tv',fontOptions ).string ) );
+console.log ( chalk.bold.cyan        ( CFonts.render( 'NGINX', fontOptions ).string ) + '\n' );
 
 
 // setup and log environment vars

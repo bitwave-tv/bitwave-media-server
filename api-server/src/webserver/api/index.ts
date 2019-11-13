@@ -3,9 +3,10 @@
 'use strict';
 
 import logger from '../../classes/Logger';
-const webLogger = logger('Webserver');
+const webLogger = logger( 'API' );
 
 import { streamAuth } from '../../classes/StreamAuth';
+
 const streamauth = streamAuth({
   hostServer : process.env['BMS_SERVER_URL'] || 'stream.bitrave.tv',
   cdnServer  : process.env['BMS_CDN_URL']    || 'cdn.stream.bitrave.tv',
@@ -34,7 +35,7 @@ export default app => {
 
     if ( app !== 'live' ) {
       res.status( 200 )
-        .send('Auth not required');
+        .send( `Auth not required` );
       return;
     }
 
@@ -72,55 +73,55 @@ export default app => {
   });
 
   // Transcoded stream start
-  app.post('/stream/transcode', async ( req, res ) => {
+  app.post( '/stream/transcode', async ( req, res ) => {
     const user = req.body.user;
     const app  = req.body.app;
     const name = req.body.name;
 
-    if (user) {
+    if ( user ) {
       setTimeout( async () => {
-        await streamauth.setLiveStatus(user, true, true);
+        await streamauth.setLiveStatus( user, true, true );
         console.log(`[${app}] ${user} is now transcoded.`);
       }, updateDelay * 1000 );
     }
-    res.status(200)
-      .send(`[${app}|${name}] is transcoding ${user}.`);
+    res.status( 200 )
+      .send( `[${app}|${name}] is transcoding ${user}.` );
   });
 
   // Livestream disconnect
-  app.post('/stream/end', async ( req, res ) => {
+  app.post( '/stream/end', async ( req, res ) => {
     const app  = req.body.app;
     const name = req.body.name;
 
     // Streamer has fully disconnected
     if ( app === 'live' ) {
-      await streamauth.setLiveStatus(name, false);
-      console.log(`[${app}] \x1b[1m\x1b[36m${name}\x1b[0m stopped streaming.`);
-      res.status(201)
-        .send(`[${app}] ${name} is now OFFLINE`);
+      await streamauth.setLiveStatus( name, false );
+      console.log( `[${app}] \x1b[1m\x1b[36m${name}\x1b[0m stopped streaming.` );
+      res.status( 201 )
+        .send( `[${app}] ${name} is now OFFLINE` );
     }
   });
 
   // Start transcoding stream
-  app.post('/stream/start-transcode', async ( req, res ) => {
+  app.post( '/stream/start-transcode', async ( req, res ) => {
     const user = req.body.user;
-    console.log(`${user} will be transcoded... Starting transcoders...`);
-    transcode.startTranscoder(user);
-    res.status(200)
-      .send(`${user} is now being transcoded.`);
+    console.log( `${user} will be transcoded... Starting transcoders...` );
+    transcode.startTranscoder( user );
+    res.status( 200 )
+      .send( `${user} is now being transcoded.` );
   });
 
   // Stop transcoding stream
-  app.post('/stream/stop-transcode', async ( req, res ) => {
+  app.post( '/stream/stop-transcode', async ( req, res ) => {
     const user = req.body.user;
-    console.log(`${user} will no longer be transcoded.`);
+    console.log( `${user} will no longer be transcoded.` );
 
     // Revert streamer endpoint
     await streamauth.setLiveStatus( user, true, false );
-    console.log(`${user}'s endpoint has been reverted`);
+    console.log( `${user}'s endpoint has been reverted` );
 
     transcode.stopTranscoder( user );
-    console.log(`${user}'s transcoding process has been stopped.`);
+    console.log( `${user}'s transcoding process has been stopped.` );
 
     res.status( 200 )
       .send(`${user} is no longer being transcoded.`);

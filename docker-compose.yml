@@ -1,19 +1,24 @@
 version: '3'
 
-
+# Microservices
 services:
+
+  # NGINX-RTMP Server Configuration
   nginx-server:
     container_name: bms-nginx-server
     image: bitwavetv/bms-nginx-server:latest
     build: './nginx-server'
+
     ports:
       - "8080:8080"
       - "1935:1935"
+
     networks:
       internal:
         aliases:
           - bms-nginx-server
           - nginx-server
+
     environment:
       - FORCE_COLOR=1
       - BMS_ENV=dev
@@ -22,20 +27,23 @@ services:
       - BMS_SERVER_URL=stream.bitwave.tv
       - BMS_CDN_URL=cdn.stream.bitwave.tv
 
-
+  # API Server Configuration
   api-server:
     container_name: bms-api-server
     image: bitwavetv/bms-api-server:latest
     build: './api-server'
     ports:
       - "3000:3000"
+
     networks:
       internal:
         aliases:
           - bms-api-server
           - api-server
+
     volumes:
       - "./creds/service-account.json:/bms-api-server/creds/service-account.json"
+
     environment:
       - FORCE_COLOR=1
       - BMS_ENV=dev
@@ -44,7 +52,7 @@ services:
       - BMS_SERVER_URL=stream.bitwave.tv
       - BMS_CDN_URL=cdn.stream.bitwave.tv
 
-
+# Network Definitions
 networks:
   internal:
     external:

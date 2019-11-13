@@ -9,7 +9,7 @@ import * as admin from 'firebase-admin';
 const serviceAccount = require('../../creds/service-account.json');
 
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+  credential: admin.credential.cert( serviceAccount ),
   databaseURL: 'https://bitwave-7f415.firebaseio.com',
 });
 
@@ -23,7 +23,7 @@ class StreamAuth {
 
   constructor( config ) {
     this.hostServer = config.hostServer;
-    this.cdnServer = config.cdnServer;
+    this.cdnServer  = config.cdnServer;
   }
 
   /**
@@ -32,18 +32,18 @@ class StreamAuth {
    * @returns {Promise<*>} - Returns key if found, else null
    */
   async getStreamKey ( username: string ) {
-    const streamRef = admin.firestore().collection('users').where('_username', '==', username.toLowerCase()).limit(1);
+    const streamRef = admin.firestore().collection( 'users' ).where( '_username', '==', username.toLowerCase() ).limit( 1 );
     const docs = await streamRef.get();
     if ( !docs.empty ) {
       const key = docs.docs[0].get( 'streamkey' );
       if ( !!key ) {
         return key; // User has a key
       }
-      if ( key === undefined ) console.log(`${username} does not have a key! (undefined)`);
-      else console.log(`\x1b[91mERROR:\x1b[0m ${username}'s key is invalid! ${key}`);
+      if ( key === undefined ) console.log( `${username} does not have a key! (undefined)` );
+      else console.log( `\x1b[91mERROR:\x1b[0m ${username}'s key is invalid! ${key}` );
       return null;
     } else {
-      console.log(`\x1b[91mERROR:\x1b[0m User \x1b[1m\x1b[36m${username}\x1b[0m could not be found!`);
+      console.log( `\x1b[91mERROR:\x1b[0m User \x1b[1m\x1b[36m${username}\x1b[0m could not be found!` );
       return undefined;
     }
   };
@@ -56,7 +56,7 @@ class StreamAuth {
    */
   async checkStreamKey ( username: string, key: string ) {
     if ( !key ) {
-      console.log(`\x1b[91mERROR:\x1b[0m ${username} did not provide a streamkey`);
+      console.log( `\x1b[91mERROR:\x1b[0m ${username} did not provide a streamkey` );
       return false;
     }
 
@@ -67,26 +67,26 @@ class StreamAuth {
     }
 
     if ( key !== streamKey ) {
-      console.log(`\x1b[91mDENIED:\x1b[0m ${username} supplied an invalid streamkey`);
+      console.log( `\x1b[91mDENIED:\x1b[0m ${username} supplied an invalid streamkey` );
       return false;
     }
 
     if ( key === streamKey ) {
-      console.log(`\x1b[1m\x1b[32mSUCCES:\x1b[0m ${username} stream authorized`);
+      console.log( `\x1b[1m\x1b[32mSUCCES:\x1b[0m ${username} stream authorized` );
       return true;
     }
 
-    console.log(`\x1b[91mERROR:\x1b[0m Unknown fail condiiton while attempting to authorize stream`);
+    console.log( `\x1b[91mERROR:\x1b[0m Unknown fail condiiton while attempting to authorize stream` );
     return false;
   };
 
   async setLiveStatus ( username: string, state: boolean, transcoded?: boolean ) {
     const _username = username.toLowerCase();
-    const streamRef = admin.firestore().collection('streams').doc(_username);
+    const streamRef = admin.firestore().collection( 'streams' ).doc( _username );
     const doc = await streamRef.get();
 
     if ( !doc.exists ) {
-      console.log(`ERROR: ${username} is not a valid streamer`);
+      console.log( `ERROR: ${username} is not a valid streamer` );
       return;
     }
 
@@ -103,7 +103,7 @@ class StreamAuth {
       thumbnail: `https://${this.cdnServer}/${thumbnail}/${username}.png`,
     });
 
-    console.log(`\x1b[1m\x1b[36m${username}\x1b[0m is now \x1b[1m${ state ? '\x1b[32mLIVE' : '\x1b[91mOFFLINE' }\x1b[0m`);
+    console.log( `\x1b[1m\x1b[36m${username}\x1b[0m is now \x1b[1m${ state ? '\x1b[32mLIVE' : '\x1b[91mOFFLINE' }\x1b[0m` );
   };
 }
 

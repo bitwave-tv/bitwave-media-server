@@ -38,7 +38,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var Logger_1 = require("../../classes/Logger");
-var webLogger = Logger_1.default('Webserver');
+var webLogger = Logger_1.default('API');
 var StreamAuth_1 = require("../../classes/StreamAuth");
 var streamauth = StreamAuth_1.streamAuth({
     hostServer: process.env['BMS_SERVER_URL'] || 'stream.bitrave.tv',
@@ -48,7 +48,7 @@ var Transcoder_1 = require("../../classes/Transcoder");
 var transcode = new Transcoder_1.Transcoder();
 var rp = require("request-promise");
 var updateDelay = 10;
-var host = 'http://localhost:8080';
+var host = 'http://nginx-server:8080';
 var control = 'control';
 exports.default = (function (app) {
     // Authorize livestream
@@ -66,7 +66,7 @@ exports.default = (function (app) {
                     }
                     if (app !== 'live') {
                         res.status(200)
-                            .send('Auth not required');
+                            .send("Auth not required");
                         return [2 /*return*/];
                     }
                     if (!name || !key) {

@@ -20,7 +20,7 @@ class Transcoder {
     this.transcoders = [];
   }
 
-  startTranscoder (user) {
+  startTranscoder ( user ) {
     // Check for existing transcoders
     const transcoder = this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() );
     if ( transcoder && transcoder.process !== null ) {
