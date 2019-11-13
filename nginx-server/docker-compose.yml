@@ -18,9 +18,8 @@ services:
           - bms-nginx-server
           - nginx-server
 
-    # volumes:
-        # - "~/db:/bitwave-media-server/db"
-        # - "./conf/service-account.json:/bitwave-media-server/conf/service-account.json"
+    volumes:
+      - archive-volume:/archives/
 
     environment:
       - BMS_ENV=dev
@@ -39,7 +38,13 @@ services:
         delay: 5s
         window: 10s
 
+
+# Network Definitions
 networks:
   internal:
     external:
       name: bms-net
+
+volumes:
+  archive-volume:
+    com.bitwave.description: "Livestream Archives"

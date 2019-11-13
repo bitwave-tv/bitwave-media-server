@@ -18,7 +18,7 @@ services:
           - api-server
 
     volumes:
-      - "../creds/service-account.json:/bms-api-server/creds/service-account.json"
+      - "/srv/creds/service-account.json:/api-server/creds/service-account.json"
 
     environment:
       - BMS_ENV=dev

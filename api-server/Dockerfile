@@ -32,21 +32,19 @@ RUN mkdir -p /tmp/hls && \
 RUN npm install -g typescript
 
 # Install npm packages
-COPY package.json package-lock.json tsconfig.json /bms-api-server/
-RUN cd /bms-api-server && \
+COPY package.json package-lock.json tsconfig.json /api-server/
+RUN cd /api-server && \
     npm ci && \
     npm cache verify
 
-COPY . /bms-api-server
-WORKDIR /bms-api-server
+COPY . /api-server
+WORKDIR /api-server
 
-RUN cd /bms-api-server && \
+RUN cd /api-server && \
     npm run build && \
     npm prune --production
 
 EXPOSE 3000
-
-# VOLUME ["/bitwave-media-server/db"]
 
 # CMD ["./run.sh"]
 

@@ -7,7 +7,7 @@ services:
   nginx-server:
     container_name: bms-nginx-server
     image: bitwavetv/bms-nginx-server:latest
-    build: './nginx-server'
+    # build: '../nginx-server'
 
     ports:
       - "8080:8080"
@@ -19,6 +19,9 @@ services:
           - bms-nginx-server
           - nginx-server
 
+    volumes:
+      - archive-volume:/archives/
+
     environment:
       - FORCE_COLOR=1
       - BMS_ENV=dev
@@ -27,11 +30,12 @@ services:
       - BMS_SERVER_URL=stream.bitwave.tv
       - BMS_CDN_URL=cdn.stream.bitwave.tv
 
+
   # API Server Configuration
   api-server:
     container_name: bms-api-server
     image: bitwavetv/bms-api-server:latest
-    build: './api-server'
+    # build: '../api-server'
     ports:
       - "3000:3000"
 
@@ -42,7 +46,7 @@ services:
           - api-server
 
     volumes:
-      - "./creds/service-account.json:/bms-api-server/creds/service-account.json"
+      - "/srv/creds/service-account.json:/api-server/creds/service-account.json"
 
     environment:
       - FORCE_COLOR=1
@@ -52,8 +56,13 @@ services:
       - BMS_SERVER_URL=stream.bitwave.tv
       - BMS_CDN_URL=cdn.stream.bitwave.tv
 
+
 # Network Definitions
 networks:
   internal:
     external:
       name: bms-net
+
+volumes:
+  archive-volume:
+    com.bitwave.description: "Livestream Archives"
