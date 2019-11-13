@@ -4,8 +4,8 @@
   "description": "bitwave media server",
   "main": "src/index.js",
   "scripts": {
-    "build": "npx tsc",
-    "watch": "npx tsc -w",
+    "build": "tsc",
+    "watch": "tsc -w",
     "dev": "npx nodemon ./build",
     "start": "node ./build",
     "docker:build": "docker build -t bitwavetv/bms-api-server:latest .",

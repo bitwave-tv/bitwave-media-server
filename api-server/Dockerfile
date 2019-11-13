@@ -29,7 +29,7 @@ RUN mkdir -p /tmp/hls && \
     mkdir -p /archives/rec
 
 # Install global npm packages
-# RUN npm install -g typescript
+RUN npm install -g typescript
 
 # Install npm packages
 COPY package.json package-lock.json tsconfig.json /bms-api-server/
