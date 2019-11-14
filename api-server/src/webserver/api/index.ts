@@ -63,7 +63,7 @@ export default app => {
 
         // Check if we should archive stream
         if ( !checkArchive ) {
-          apiLogger.info( `Archiving is disabled for ${chalk.cyanBright.bold(name)}}` );
+          apiLogger.info( `Archiving is disabled for ${chalk.cyanBright.bold(name)}` );
           return;
         }
 
@@ -134,7 +134,7 @@ export default app => {
 
       // Set offline status
       await streamauth.setLiveStatus( name, false );
-      console.log( `[${app}] ${chalk.cyanBright.bold(name)} is going ${chalk.redBright.bold('OFFLINE')}.` );
+      apiLogger.info( `[${app}] ${chalk.cyanBright.bold(name)} is going ${chalk.redBright.bold('OFFLINE')}.` );
       res.status( 201 )
         .send( `[${app}] ${name} is now OFFLINE` );
     }
@@ -148,7 +148,7 @@ export default app => {
     apiLogger.info( `${chalk.cyanBright.bold(user)} will be transcoded... Starting transcoders...` );
     transcode.startTranscoder( user );
     res.status( 200 )
-      .send( `${chalk.cyanBright.bold(user)} is now being transcoded.` );
+      .send( `${user} is now being transcoded.` );
   });
 
   /**
