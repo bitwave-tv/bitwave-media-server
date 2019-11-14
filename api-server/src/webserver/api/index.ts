@@ -25,6 +25,11 @@ const control     = 'control';
 let liveTimers = [];
 
 export default app => {
+
+  /*********************************
+   * Authorize Streams
+   */
+
   /**
    * Authorize livestream
    */
@@ -140,10 +145,15 @@ export default app => {
     }
   });
 
+
+  /*********************************
+   * Commands & Controls
+   */
+
   /**
    * Start transcoding stream
    */
-  app.post( '/stream/start-transcode', async ( req, res ) => {
+  app.post( '/stream/transcode/start', async ( req, res ) => {
     const user = req.body.user;
     apiLogger.info( `${chalk.cyanBright.bold(user)} will be transcoded... Starting transcoders...` );
     transcode.startTranscoder( user );
@@ -154,7 +164,7 @@ export default app => {
   /**
    * Stop transcoding stream
    */
-  app.post( '/stream/stop-transcode', async ( req, res ) => {
+  app.post( '/stream/transcode/stop', async ( req, res ) => {
     const user = req.body.user;
     apiLogger.info( `${chalk.cyanBright.bold(user)} will no longer be transcoded.` );
 
@@ -168,6 +178,43 @@ export default app => {
     res.status( 200 )
       .send(`${user} is no longer being transcoded.`);
   });
+
+  /**
+   * Start stream recorder
+   */
+  app.post( '/stream/record/start', async ( req, res ) => {
+    const name = req.body.name;
+    const response = await rp( `${host}/${control}/record/start?app=live&name=${name}&rec=archive` );
+
+    if ( !response ) {
+      apiLogger.info(`${chalk.redBright('Failed to start archive')}, please try again.`);
+    } else {
+      apiLogger.info(`Archiving ${chalk.cyanBright.bold(name)} to ${chalk.greenBright(response)}`);
+    }
+
+    res.status( !!response ? 200 : 502 ).send( !!response ? response : `${name} failed to start archive` );
+  });
+
+  /**
+   * Stop stream recorder
+   */
+  app.post( '/stream/record/stop', async ( req, res ) => {
+    const name = req.body.name;
+    const response = await rp( `${host}/${control}/record/stop?app=live&name=${name}&rec=archive` );
+
+    if ( !response ) {
+      apiLogger.info(`${chalk.redBright('Failed to stop archive')}, please try again.` );
+    } else {
+      apiLogger.info(`Archive of ${chalk.cyanBright.bold(name)} saved to ${chalk.greenBright(response)}`);
+    }
+
+    res.status( !!response ? 200 : 502 ).send( !!response ? response : `${name} failed to stop archive` );
+  });
+
+
+  /*********************************
+   * Stream Data
+   */
 
   /**
    * Transcoded stream stats
