@@ -229,7 +229,7 @@ export default app => {
    */
   app.get( '/stream/stats/:user', async ( req, res ) => {
     res.status( 200 )
-      .send( transcode.transcoders.map( stats => {
+      .send( transcode.transcoders.filter( stats => {
         if ( stats.user.toLowerCase() === req.params.user.toLowerCase() ) {
           return { user: stats.user, data: stats.data }
         }

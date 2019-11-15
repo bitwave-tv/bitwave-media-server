@@ -161,7 +161,7 @@ class Transcoder {
         this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() ).data = {
           frames: progress.frames,
           fps: progress.currentFps,
-          bitRate: progress.currentKbps / 1000,
+          bitRate: progress.currentKbps,
           time: progress.timemark,
         };
         // console.log(`${progress.frames} FPS:${progress.currentFps} ${(progress.currentKbps / 1000).toFixed(1)}Mbps - ${progress.timemark}`);
