@@ -1,0 +1,265 @@
+{
+  "name": "live",
+  "jsondb": "db/v1",
+  "auth": {
+    "username": "admin",
+    "password": "password",
+    "token": ""
+  },
+  "ffmpeg": {
+    "options": {
+      "audio_codec_copy": {
+        "outputOptions": [
+          "-codec:a copy"
+        ]
+      },
+      "audio_codec_copy_aac": {
+        "outputOptions": [
+          "-codec:a copy",
+          "-bsf:a aac_adtstoasc"
+        ]
+      },
+      "audio_codec_none": {
+        "outputOptions": [
+          "-an"
+        ]
+      },
+      "audio_codec_aac": {
+        "outputOptions": [
+          "-codec:a aac",
+          "-bsf:a aac_adtstoasc"
+        ]
+      },
+      "audio_codec_mp3": {
+        "outputOptions": [
+          "-codec:a libmp3lame"
+        ]
+      },
+      "audio_preset_copy": {
+        "outputOptions": [
+          "-map 0:{audioid}"
+        ]
+      },
+      "audio_preset_encode": {
+        "outputOptions": [
+          "-b:a {bitrate}k",
+          "-map 0:{audioid}"
+        ]
+      },
+      "audio_preset_silence": {
+        "input": "anullsrc=r={sampling}:cl={channels}",
+        "inputOptions": [
+          "-f lavfi",
+          "-thread_queue_size 512"
+        ],
+        "outputOptions": [
+          "-b:a {bitrate}k",
+          "-map 1:a",
+          "-shortest"
+        ]
+      },
+      "audio_filter_sampling": {
+        "outputOptions": [
+          "-af aresample=osr={sampling}"
+        ]
+      },
+      "audio_filter_channels": {
+        "outputOptions": [
+          "-af aresample=ocl={channels}"
+        ]
+      },
+      "audio_filter_all": {
+        "outputOptions": [
+          "-af aresample=osr={sampling}:ocl={channels}"
+        ]
+      },
+      "video_codec_copy": {
+        "inputOptions": [
+          "-re"
+        ],
+        "outputOptions": [
+          "-codec:v copy",
+          "-map 0:{videoid}",
+          "-vsync 0",
+          "-copyts",
+          "-start_at_zero"
+        ]
+      },
+      "video_codec_h264": {
+        "inputOptions": [
+          "-re"
+        ],
+        "outputOptions": [
+          "-codec:v libx264",
+          "-preset:v {preset}",
+          "-b:v {bitrate}k",
+          "-maxrate {bitrate}k",
+          "-bufsize {bitrate}k",
+          "-r {fps}",
+          "-g {gop}",
+          "-pix_fmt yuv420p",
+          "-map 0:{videoid}",
+          "-vsync 1"
+        ]
+      },
+      "video_codec_h264_profile": {
+        "outputOptions": [
+          "-profile:v {profile}"
+        ]
+      },
+      "video_codec_h264_tune": {
+        "outputOptions": [
+          "-tune {tune}"
+        ]
+      },
+      "video_codec_hevc": {
+        "inputOptions": [
+          "-re"
+        ],
+        "outputOptions": [
+          "-codec:v libx265",
+          "-preset:v {preset}",
+          "-b:v {bitrate}k",
+          "-maxrate {bitrate}k",
+          "-bufsize {bitrate}k",
+          "-r {fps}",
+          "-x265-params keyint={gop}",
+          "-map 0:{videoid}",
+          "-vsync 1"
+        ]
+      },
+      "global": {
+        "inputOptions": [
+          "-stats",
+          "-loglevel quiet",
+          "-err_detect ignore_err"
+        ]
+      },
+      "video": {
+        "outputOptions": [
+          "-map_metadata -1",
+          "-metadata application=bitwavetv/bitwave-media-server"
+        ]
+      },
+      "rtmp": {
+        "outputOptions": [
+          "-f flv"
+        ]
+      },
+      "rtmp-fflags": {
+        "inputOptions": [
+          "-fflags nobuffer+genpts+igndts"
+        ]
+      },
+      "hls": {
+        "inputOptions": [
+          "-fflags nobuffer+genpts"
+        ],
+        "outputOptions": [
+          "-f hls",
+          "-hls_time 2",
+          "-hls_list_size 10",
+          "-hls_flags delete_segments+temp_file+append_list"
+        ]
+      },
+      "hls_segment_ts": {
+        "outputOptions": [
+          "-hls_segment_type ts",
+          "-hls_segment_filename /tmp/hls/live.stream_%09d.ts"
+        ]
+      },
+      "hls_segment_fmp4": {
+        "outputOptions": [
+          "-hls_segment_type fmp4",
+          "-hls_fmp4_init_filename live.stream_init.mp4",
+          "-hls_segment_filename /tmp/hls/live.stream_%09d.m4s"
+        ]
+      },
+      "rtsp-tcp": {
+        "inputOptions": [
+          "-rtsp_transport tcp"
+        ]
+      },
+      "snapshot": {
+        "outputOptions": [
+          "-vframes 1"
+        ]
+      }
+    },
+    "monitor": {
+      "restart_wait": "6000",
+      "stale_wait": "60000"
+    }
+  },
+  "envVars": [
+    {
+      "name": "BMS_SERVER",
+      "alias": [
+        "BM_SERVER_URL"
+      ],
+      "type": "string",
+      "defaultValue": "stream.bitwave.tv",
+      "required": false,
+      "description": "Server URL location."
+    },
+    {
+      "name": "BMS_CDN",
+      "alias": [
+        "BMS_CDN_URL"
+      ],
+      "type": "string",
+      "defaultValue": "cdn.stream.bitwave.tv",
+      "required": false,
+      "description": "CDN Server URL location."
+    },
+    {
+      "name": "BMS_NODEJS_PORT",
+      "alias": [
+        "NODEJS_PORT"
+      ],
+      "type": "int",
+      "defaultValue": "3000",
+      "required": false,
+      "description": "API server port."
+    },
+    {
+      "name": "BMS_ENV",
+      "alias": [
+        "NODE_ENV",
+        "BMS_NODEJS_ENV"
+      ],
+      "type": "string",
+      "defaultValue": "prod",
+      "required": false,
+      "description": "Environment ('dev' / 'prod')."
+    },
+    {
+      "name": "BMS_LOGLEVEL",
+      "alias": [
+        "LOGGER_LEVEL"
+      ],
+      "type": "int",
+      "defaultValue": "3",
+      "required": false,
+      "description": "0=no logging, 1=ERROR, 2=WARN, 3=INFO, 4=DEBUG"
+    },
+    {
+      "name": "BMS_DEBUG",
+      "alias": [],
+      "type": "bool",
+      "defaultValue": false,
+      "required": false,
+      "description": "Enables additional debug reporting."
+    },
+    {
+      "name": "BMS_TIMEZONE",
+      "alias": [
+        "TIMEZONE"
+      ],
+      "type": "string",
+      "defaultValue": "America/Los_Angeles",
+      "required": false,
+      "description": "Timezone (Olson timezone ID)"
+    }
+  ]
+}

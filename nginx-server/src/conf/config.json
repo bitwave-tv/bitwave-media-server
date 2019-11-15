@@ -1,0 +1,98 @@
+{
+  "name": "live",
+  "jsondb": "db/v1",
+  "auth": {
+    "username": "admin",
+    "password": "password",
+    "token": ""
+  },
+  "nginx": {
+    "command": "/usr/local/nginx/sbin/nginx",
+    "args": [
+      "-c",
+      "/bms-nginx-server/src/conf/nginx.conf"
+    ],
+    "args_ssl": [
+      "-c",
+      "/bms-nginx-server/src/conf/nginx_ssl.conf"
+    ],
+    "streaming": {
+      "ip": "127.0.0.1",
+      "rtmp_port": "1935",
+      "rtmp_hls_path": "/hls/",
+      "http_port": "8080",
+      "http_health_path": "/ping"
+    }
+  },
+  "envVars": [
+    {
+      "name": "BMS_SERVER",
+      "alias": [
+        "BM_SERVER_URL"
+      ],
+      "type": "string",
+      "defaultValue": "stream.bitwave.tv",
+      "required": false,
+      "description": "Server URL location."
+    },
+    {
+      "name": "BMS_CDN",
+      "alias": [
+        "BMS_CDN_URL"
+      ],
+      "type": "string",
+      "defaultValue": "cdn.stream.bitwave.tv",
+      "required": false,
+      "description": "CDN Server URL location."
+    },
+    {
+      "name": "BMS_NODEJS_PORT",
+      "alias": [
+        "NODEJS_PORT"
+      ],
+      "type": "int",
+      "defaultValue": "3000",
+      "required": false,
+      "description": "API server port."
+    },
+    {
+      "name": "BMS_ENV",
+      "alias": [
+        "NODE_ENV",
+        "BMS_NODEJS_ENV"
+      ],
+      "type": "string",
+      "defaultValue": "prod",
+      "required": false,
+      "description": "Environment ('dev' / 'prod')."
+    },
+    {
+      "name": "BMS_LOGLEVEL",
+      "alias": [
+        "LOGGER_LEVEL"
+      ],
+      "type": "int",
+      "defaultValue": "3",
+      "required": false,
+      "description": "0=no logging, 1=ERROR, 2=WARN, 3=INFO, 4=DEBUG"
+    },
+    {
+      "name": "BMS_DEBUG",
+      "alias": [],
+      "type": "bool",
+      "defaultValue": false,
+      "required": false,
+      "description": "Enables additional debug reporting."
+    },
+    {
+      "name": "BMS_TIMEZONE",
+      "alias": [
+        "TIMEZONE"
+      ],
+      "type": "string",
+      "defaultValue": "America/Los_Angeles",
+      "required": false,
+      "description": "Timezone (Olson timezone ID)"
+    }
+  ]
+}

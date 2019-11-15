@@ -1,0 +1,15 @@
+# ignore dockerfiles
+.dockerignore
+Dockerfile*
+.git
+.editorconfig
+.gitignore
+docs
+node_modules
+bin
+db
+*.log
+_site
+.idea
+**/service-account.json
+creds

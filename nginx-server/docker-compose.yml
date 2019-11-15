@@ -1,0 +1,46 @@
+version: '3'
+
+# Microservices
+services:
+
+  # NGINX-RTMP Server Configuration
+  nginx-server:
+    container_name: bms-nginx-server-dev
+    image: bitwavetv/bms-nginx-server:latest
+
+    ports:
+      - "8080:8080"
+      - "1935:1935"
+
+    networks:
+      internal:
+        aliases:
+          - bms-nginx-server
+          - nginx-server
+
+    # Mount Archives Directory
+    volumes:
+      - /srv/archives:/archives
+
+    environment:
+      - BMS_ENV=dev
+      - BMS_LOGLEVEL=4
+      - BMS_DEBUG=false
+      - BMS_TIMEZONE=America/Los_Angeles
+      - BMS_SERVER=stream.bitwave.tv
+      - BMS_CDN=cdn.stream.bitwave.tv
+      - FORCE_COLOR=1
+
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        window: 10s
+
+
+# Network Definitions
+networks:
+  internal:
+    external:
+      name: bms-net

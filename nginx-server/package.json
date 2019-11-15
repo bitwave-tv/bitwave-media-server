@@ -1,0 +1,42 @@
+{
+  "name": "bitwave-media-server",
+  "version": "1.1.4",
+  "description": "bitwave media server",
+  "main": "src/index.js",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "dev": "npx nodemon ./build",
+    "start": "node ./build",
+    "docker:build": "docker build -t bitwavetv/bms-nginx-server:latest .",
+    "docker:up": "docker-compose up",
+    "docker:publish": "docker push bitwavetv/bms-nginx-server:latest",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bitwave-tv/bitwave-media-server.git"
+  },
+  "author": "dispatch",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/bitwave-tv/bitwave-media-server/issues"
+  },
+  "homepage": "https://github.com/bitwave-tv/bitwave-media-server#readme",
+  "dependencies": {
+    "cfonts": "^2.4.5",
+    "chalk": "^3.0.0",
+    "moment-timezone": "^0.5.27",
+    "printf": "^0.5.2",
+    "q": "^1.5.1",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.4"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.2",
+    "@types/moment-timezone": "^0.5.12",
+    "@types/node": "^12.12.7",
+    "@types/q": "^1.5.2",
+    "@types/request-promise": "^4.1.44"
+  }
+}
