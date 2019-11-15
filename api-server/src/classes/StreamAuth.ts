@@ -94,9 +94,34 @@ class StreamAuth {
    * Set streamer live status and transcode status
    * @param username - Streamer's username
    * @param state - LIVE / OFFLINE status
+   */
+  async setLiveStatus ( username: string, state: boolean ) {
+    const streamRef = admin.firestore().collection( 'streams' ).doc( username.toLowerCase() );
+    const doc = await streamRef.get();
+
+    if ( !doc.exists ) {
+      log.info( `${chalk.bgRedBright.black('ERROR:')} ${username} is not a valid streamer` );
+      return;
+    }
+
+    const streamUrl = `https://${this.cdnServer}/${hlsStream}/${username}/index.m3u8`;
+    const thumbUrl  = `https://${this.cdnServer}/${thumbnail}/${username}.png`;
+
+    await streamRef.update({
+      live: state,
+      url: streamUrl,
+      thumbnail: thumbUrl,
+    });
+
+    log.info( `${chalk.cyanBright(username)} is now ${ state ? chalk.greenBright.bold('LIVE') : chalk.redBright.bold('OFFLINE') }` );
+  };
+
+  /**
+   * Set transcode status and livestream endpoint
+   * @param username - Streamer's username
    * @param transcoded - Transcode status
    */
-  async setLiveStatus ( username: string, state: boolean, transcoded?: boolean ) {
+  async setTranscodeStatus ( username: string, transcoded: boolean ) {
     const streamRef = admin.firestore().collection( 'streams' ).doc( username.toLowerCase() );
     const doc = await streamRef.get();
 
@@ -113,14 +138,16 @@ class StreamAuth {
     }
 
     await streamRef.update({
-      live: state,
       url: url,
-      thumbnail: `https://${this.cdnServer}/${thumbnail}/${username}.png`,
     });
 
-    log.info( `${chalk.cyanBright(username)} is now ${ state ? chalk.greenBright.bold('LIVE') : chalk.redBright.bold('OFFLINE') }` );
+    log.info( `${chalk.cyanBright(username)}'s transcoder has ${ transcoded ? chalk.greenBright.bold('started') : chalk.redBright.bold('stopped') }.` );
   };
 
+  /**
+   * Check streamer's archive setting
+   * @param username - Streamer's username
+   */
   async checkArchive( username: string ): Promise<boolean> {
     const streamRef = admin.firestore().collection( 'streams' ).doc( username.toLowerCase() );
     const doc = await streamRef.get();

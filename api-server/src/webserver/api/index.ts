@@ -64,7 +64,7 @@ export default app => {
       const timer = setTimeout( async () => {
 
         // Update live status
-        await streamauth.setLiveStatus( name, true, false );
+        await streamauth.setLiveStatus( name, true );
 
         // Check if we should archive stream
         if ( !checkArchive ) {
@@ -111,7 +111,7 @@ export default app => {
 
     if ( user ) {
       setTimeout( async () => {
-        await streamauth.setLiveStatus( user, true, true );
+        await streamauth.setTranscodeStatus( user, true );
         apiLogger.info(`[${app}] ${chalk.cyanBright.bold(user)} is now ${chalk.greenBright.bold('transcoded')}.`);
       }, updateDelay * 1000 );
     }
@@ -169,7 +169,7 @@ export default app => {
     apiLogger.info( `${chalk.cyanBright.bold(user)} will no longer be transcoded.` );
 
     // Revert streamer endpoint
-    await streamauth.setLiveStatus( user, true, false );
+    await streamauth.setTranscodeStatus( user, false );
     apiLogger.info( `${chalk.cyanBright.bold(user)}'s endpoint has been reverted` );
 
     transcode.stopTranscoder( user );
