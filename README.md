@@ -6,6 +6,19 @@ An NGINX-RTMP + Node.js docker container for managing ingestion.
 
 ## Commands
 
+Updating Server:
+
+```bash
+docker pull bitwavetv/bms-api-server
+docker pull bitwavetv/bms-nginx-server
+docker-compose up --build -d
+```
+
+View Logs:
+```bash
+docker-compose logs --tail 25 -f
+```
+
 Build:
 ```bash
 docker build -t bitwavetv/bitwave-media-server:latest .
@@ -28,10 +41,7 @@ Docker-Compose build & run detatched:
 docker-compose up --build -d
 ```
 
-Docker-Compose Logs (tail 25 & follow):
-```bash
-docker-compose logs --tail 25 -f
-```
+
 
 
 ### Outdated
