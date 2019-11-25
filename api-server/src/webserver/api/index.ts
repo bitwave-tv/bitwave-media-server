@@ -220,14 +220,24 @@ export default app => {
    * Transcoded stream stats
    */
   app.get( '/stream/stats', async ( req, res ) => {
+    const data = transcode.transcoders.map( t => ({
+      user: t.user,
+      ffmpegProc: t.process.ffmpegProc,
+      ffprobeData: t.process._ffprobeData,
+      data: t.data
+    }));
     res.status( 200 )
-      .send( transcode.transcoders.map( t => ({ user: t.user, data: t.data }) ) );
+      .send( data );
   });
 
   /**
    * Transcoded stream stats for single user
    */
   app.get( '/stream/stats/:user', async ( req, res ) => {
+    const data = transcode.transcoders
+      .filter( stats => stats.user.toLowerCase() === req.params.user.toLowerCase() )
+      .map( stats => ({user: stats.user, ffmpegProc: stats.process.ffmpegProc, data: stats.data }) );
+
     res.status( 200 )
       .send( transcode.transcoders.filter( stats => {
         if ( stats.user.toLowerCase() === req.params.user.toLowerCase() ) {
