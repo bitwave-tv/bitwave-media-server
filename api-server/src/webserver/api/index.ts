@@ -190,6 +190,7 @@ export default app => {
       apiLogger.info(`${chalk.redBright('Failed to start archive')}, please try again.`);
     } else {
       apiLogger.info(`Archiving ${chalk.cyanBright.bold(name)} to ${chalk.greenBright(response)}`);
+      await streamauth.saveArchive( name, response );
     }
 
     res.status( !!response ? 200 : 502 ).send( !!response ? response : `${name} failed to start archive` );

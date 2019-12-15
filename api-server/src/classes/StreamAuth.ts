@@ -7,6 +7,7 @@ const log = logger('AUTH');
 
 import * as chalk from 'chalk';
 import * as admin from 'firebase-admin';
+import * as rp from 'request-promise';
 
 // Do not attempt to log credentials for CI/CD pipeline
 const CICD = process.env['CICD'] === 'true';
@@ -159,7 +160,29 @@ class StreamAuth {
 
     const data = doc.data();
     return !!data.archive;
-  }
+  };
+
+  /**
+   * Passes archive information to API server
+   * @param username
+   * @param location
+   */
+  async saveArchive ( username: string, location: string ): Promise<void> {
+    const options = {
+      form: {
+        server: this.hostServer,
+        username: username,
+        location: location,
+      },
+    };
+
+    try {
+      const response = await rp.post( 'https://api.bitwave.tv/api/archives/add',  options);
+      log.info( response );
+    } catch ( error ) {
+      log.info( error );
+    }
+  };
 }
 
 export const streamAuth = config => new StreamAuth( config );
