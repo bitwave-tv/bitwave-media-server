@@ -81,6 +81,7 @@ export default app => {
             apiLogger.info( `${chalk.redBright('Failed to start archive')}, attempting again in 10 seconds (${i}/6)` );
           } else {
             apiLogger.info( `Archiving ${chalk.cyanBright.bold(name)} to ${chalk.greenBright(response)}` );
+            await streamauth.saveArchive( name, response );
             break;
           }
         }
