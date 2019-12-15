@@ -169,6 +169,9 @@ class StreamAuth {
    */
   async saveArchive ( username: string, location: string ): Promise<void> {
     const options = {
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded',
+      },
       form: {
         server: this.hostServer,
         username: username,
