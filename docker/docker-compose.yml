@@ -19,17 +19,19 @@ services:
           - bms-nginx-server
           - nginx-server
 
-    # Mount Archives Directory
+    #  Mount Archives Directory  #
+    # - MODIFY THESE LOCATIONS - #
     volumes:
       - /srv/archives:/archives
+      - /srv/creds:/bms-nginx-server/creds
 
     environment:
       - FORCE_COLOR=1
       - BMS_ENV=dev
       - BMS_LOGLEVEL=4
       - BMS_TIMEZONE=America/Los_Angeles
-      - BMS_SERVER=stream.bitwave.tv
-      - BMS_CDN=cdn.stream.bitwave.tv
+      - BMS_SERVER=stream.bitwave.tv      # MODIFY THIS
+      - BMS_CDN=cdn.stream.bitwave.tv     # MODIFY THIS
 
 
   # API Server Configuration
@@ -37,6 +39,7 @@ services:
     container_name: bms-api-server
     image: bitwavetv/bms-api-server:latest
     # build: '../api-server'
+
     ports:
       - "3000:3000"
 
@@ -46,7 +49,8 @@ services:
           - bms-api-server
           - api-server
 
-    # Mount API creds
+    # -    Mount API Creds     - #
+    # - MODIFY THESE LOCATIONS - #
     volumes:
       - /srv/creds:/api-server/creds
 
@@ -55,8 +59,8 @@ services:
       - BMS_ENV=dev
       - BMS_LOGLEVEL=4
       - BMS_TIMEZONE=America/Los_Angeles
-      - BMS_SERVER=stream.bitwave.tv
-      - BMS_CDN=cdn.stream.bitwave.tv
+      - BMS_SERVER=stream.bitwave.tv      # MODIFY THIS
+      - BMS_CDN=cdn.stream.bitwave.tv     # MODIFY THIS
 
 
 # Network Definitions
