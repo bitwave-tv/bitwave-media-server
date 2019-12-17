@@ -52,17 +52,22 @@ class ServerData {
     const endpoint = `rtmp://nginx-server/live/${streamer}`;
     try {
       ffprobe(endpoint, (err, data) => {
-        log.error( err );
+        if ( err ) {
+          log.error( err );
+          return;
+        }
+
+        log.info( JSON.stringify( data ) );
 
         const streams = data.streams;
 
         const videoStream = streams.filter(stream => stream.codec_type === 'video');
         const audioStream = streams.filter(stream => stream.codec_type === 'audio');
 
-        this.updateStreamerData(streamer, videoStream, audioStream);
+        this.updateStreamerData( streamer, videoStream, audioStream );
       });
     } catch ( error ) {
-      log.error( error.message );
+      log.error( error );
     }
   }
 
@@ -70,6 +75,7 @@ class ServerData {
     let data = this.streamers.get( streamer );
 
     if ( videoStream ) {
+      log.info( JSON.stringify( videoStream ) );
       data.video = {
         codec: videoStream.codec_name,
         bitrate: videoStream.bit_rate,
@@ -83,6 +89,7 @@ class ServerData {
     }
 
     if ( audioStream ) {
+      log.info( JSON.stringify( audioStream ) );
       data.audio = {
         codec: audioStream.codec_name,
         bitrate: audioStream.bit_rate,
