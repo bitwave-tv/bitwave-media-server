@@ -9,6 +9,7 @@ import logger from '../../classes/Logger';
 const apiLogger = logger( 'APIv1' );
 
 import { streamAuth } from '../../classes/StreamAuth';
+import { serverData } from '../../classes/ServerData';
 
 const streamauth = streamAuth({
   hostServer : process.env['BMS_SERVER'] || 'stream.bitrave.tv',
@@ -252,6 +253,21 @@ export default app => {
           return { user: stats.user, data: stats.data }
         }
       }));
+  });
+
+
+  /*********************************
+   * Server Data
+   */
+
+  app.get( '/server/data', async ( req, res ) => {
+    const data = serverData.getStreamerList();
+    res.status(200).send(data);
+  });
+
+  app.get( '/server/data/:streamer', async ( req, res ) => {
+    const data = serverData.getStreamerData( req.params.streamer );
+    res.status(200).send(data);
   });
 
 };

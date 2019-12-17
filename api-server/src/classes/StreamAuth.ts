@@ -5,6 +5,8 @@
 import logger from './Logger';
 const log = logger('AUTH');
 
+import { serverData } from './ServerData';
+
 import * as chalk from 'chalk';
 import * as admin from 'firebase-admin';
 import * as rp from 'request-promise';
@@ -99,6 +101,7 @@ class StreamAuth {
    * Set streamer live status and transcode status
    * @param {string} username - Streamer's username
    * @param {boolean} state - LIVE / OFFLINE status
+   * @return {Promise<void>}
    */
   async setLiveStatus ( username: string, state: boolean ): Promise<void> {
     const streamRef = admin.firestore().collection( 'streams' ).doc( username.toLowerCase() );
@@ -120,6 +123,12 @@ class StreamAuth {
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
     });
 
+    if ( state ) {
+      serverData.addStreamer( username );
+    } else {
+      serverData.removeStreamer( username );
+    }
+
     log.info( `${chalk.cyanBright(username)} is now ${ state ? chalk.greenBright.bold('LIVE') : chalk.redBright.bold('OFFLINE') }` );
   };
 
@@ -127,6 +136,7 @@ class StreamAuth {
    * Set transcode status and livestream endpoint
    * @param {string} username - Streamer's username
    * @param {boolean} transcoded - Transcode status
+   * @return {Promise<void>}
    */
   async setTranscodeStatus ( username: string, transcoded: boolean ): Promise<void> {
     const streamRef = admin.firestore().collection( 'streams' ).doc( username.toLowerCase() );
@@ -154,6 +164,7 @@ class StreamAuth {
   /**
    * Check streamer's archive setting
    * @param {string} username - Streamer's username
+   * @return {Promise<boolean>}
    */
   async checkArchive( username: string ): Promise<boolean> {
     const streamRef = admin.firestore().collection( 'streams' ).doc( username.toLowerCase() );
@@ -172,6 +183,7 @@ class StreamAuth {
    * Passes archive information to API server
    * @param {string} username
    * @param {string} location
+   * @return {Promise<void>}
    */
   async saveArchive ( username: string, location: string ): Promise<void> {
     const options = {
