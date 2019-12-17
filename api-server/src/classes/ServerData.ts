@@ -26,8 +26,8 @@ interface IAudioStats {
 interface IStreamerData {
   name: string,
   timestamp: number,
-  video: IVideoStats|null,
-  audio: IAudioStats|null,
+  video: IVideoStats[]|null,
+  audio: IAudioStats[]|null,
 }
 
 class ServerData {
@@ -71,29 +71,34 @@ class ServerData {
     }
   }
 
-  private updateStreamerData ( streamer: string, videoStream: any, audioStream: any ): void {
+  private updateStreamerData ( streamer: string, videoStream: any[], audioStream: any[] ): void {
     let data = this.streamers.get( streamer );
 
     if ( videoStream ) {
       log.info( JSON.stringify( videoStream ) );
-      data.video = {
-        codec: videoStream.codec_name,
-        bitrate: videoStream.bit_rate,
-        fps: videoStream.avg_frame_rate,
-        keyframes: videoStream.has_b_frames,
-        resolution: {
-          width: videoStream.width,
-          height: videoStream.height,
-        }
-      }
+      videoStream.forEach( vs => {
+        data.video.push({
+          codec: vs.codec_name,
+          bitrate: vs.bit_rate,
+          fps: vs.avg_frame_rate,
+          keyframes: vs.has_b_frames,
+          resolution: {
+            width: vs.width,
+            height: vs.height,
+          }
+        });
+      });
+
     }
 
     if ( audioStream ) {
       log.info( JSON.stringify( audioStream ) );
-      data.audio = {
-        codec: audioStream.codec_name,
-        bitrate: audioStream.bit_rate,
-      }
+      audioStream.forEach( as => {
+        data.audio.push({
+          codec: as.codec_name,
+          bitrate: as.bit_rate,
+        });
+      });
     }
 
     this.streamers.set( streamer, data );
