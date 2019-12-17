@@ -74,6 +74,9 @@ class ServerData {
   private updateStreamerData ( streamer: string, videoStream: any[], audioStream: any[] ): void {
     let data = this.streamers.get( streamer );
 
+    if ( !data.video ) data.video = [];
+    if ( !data.audio ) data.audio = [];
+
     if ( videoStream ) {
       log.info( JSON.stringify( videoStream ) );
       videoStream.forEach( vs => {
