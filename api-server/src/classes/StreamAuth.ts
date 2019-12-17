@@ -34,11 +34,15 @@ class StreamAuth {
 
   /**
    * Retrieves a user's stream key if available
-   * @param username - The user whose key to retrieve
-   * @returns {Promise<*>} - Returns key if found, else null
+   * @param {string} username - The user whose key to retrieve
+   * @returns {Promise<string|null>} - Returns key if found, else null
    */
-  async getStreamKey ( username: string ) {
-    const streamRef = admin.firestore().collection( 'users' ).where( '_username', '==', username.toLowerCase() ).limit( 1 );
+  async getStreamKey ( username: string ): Promise<string|null> {
+    const streamRef = admin.firestore()
+      .collection( 'users' )
+      .where( '_username', '==', username.toLowerCase() )
+      .limit( 1 );
+
     const docs = await streamRef.get();
 
     if ( !docs.empty ) {
@@ -55,17 +59,17 @@ class StreamAuth {
       return null;
     } else {
       log.info( `${chalk.bgRedBright.black(' ERROR: ')}  User ${chalk.bgYellowBright(username)} could not be found!` );
-      return undefined;
+      return null;
     }
   };
 
   /**
    * Verify & Authorize a user's stream via streamkey
-   * @param username - name of user attempting to stream
-   * @param key - user's streamkey
+   * @param {string} username - name of user attempting to stream
+   * @param {string} key - user's streamkey
    * @returns {Promise<boolean>} - Returns true if user's streamkey matches database
    */
-  async checkStreamKey ( username: string, key: string ) {
+  async checkStreamKey ( username: string, key: string ): Promise<boolean> {
     if ( !key ) {
       log.info( `${chalk.bgRedBright.black(' ERROR: ')} ${username} did not provide a streamkey.` );
       return false;
@@ -93,10 +97,10 @@ class StreamAuth {
 
   /**
    * Set streamer live status and transcode status
-   * @param username - Streamer's username
-   * @param state - LIVE / OFFLINE status
+   * @param {string} username - Streamer's username
+   * @param {boolean} state - LIVE / OFFLINE status
    */
-  async setLiveStatus ( username: string, state: boolean ) {
+  async setLiveStatus ( username: string, state: boolean ): Promise<void> {
     const streamRef = admin.firestore().collection( 'streams' ).doc( username.toLowerCase() );
     const doc = await streamRef.get();
 
@@ -112,6 +116,8 @@ class StreamAuth {
       live: state,
       url: streamUrl,
       thumbnail: thumbUrl,
+      rtmp: username,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
     });
 
     log.info( `${chalk.cyanBright(username)} is now ${ state ? chalk.greenBright.bold('LIVE') : chalk.redBright.bold('OFFLINE') }` );
@@ -119,10 +125,10 @@ class StreamAuth {
 
   /**
    * Set transcode status and livestream endpoint
-   * @param username - Streamer's username
-   * @param transcoded - Transcode status
+   * @param {string} username - Streamer's username
+   * @param {boolean} transcoded - Transcode status
    */
-  async setTranscodeStatus ( username: string, transcoded: boolean ) {
+  async setTranscodeStatus ( username: string, transcoded: boolean ): Promise<void> {
     const streamRef = admin.firestore().collection( 'streams' ).doc( username.toLowerCase() );
     const doc = await streamRef.get();
 
@@ -147,7 +153,7 @@ class StreamAuth {
 
   /**
    * Check streamer's archive setting
-   * @param username - Streamer's username
+   * @param {string} username - Streamer's username
    */
   async checkArchive( username: string ): Promise<boolean> {
     const streamRef = admin.firestore().collection( 'streams' ).doc( username.toLowerCase() );
@@ -164,8 +170,8 @@ class StreamAuth {
 
   /**
    * Passes archive information to API server
-   * @param username
-   * @param location
+   * @param {string} username
+   * @param {string} location
    */
   async saveArchive ( username: string, location: string ): Promise<void> {
     const options = {

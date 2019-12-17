@@ -93,10 +93,12 @@ export default app => {
       });
 
       apiLogger.info( `[${app}] ${chalk.cyanBright.bold(name)} authorized.` );
+
       res.status( 200 )
         .send( `${name} authorized.` );
     } else {
       apiLogger.info( `[${app}] ${chalk.redBright.bold(name)} denied.` );
+
       res.status( 403 )
         .send( `${name} denied.` );
     }
@@ -116,6 +118,7 @@ export default app => {
         apiLogger.info(`[${app}] ${chalk.cyanBright.bold(user)} is now ${chalk.greenBright.bold('transcoded')}.`);
       }, updateDelay * 1000 );
     }
+
     res.status( 200 )
       .send( `[${app}|${name}] is transcoding ${user}.` );
   });
@@ -141,6 +144,7 @@ export default app => {
       // Set offline status
       await streamauth.setLiveStatus( name, false );
       apiLogger.info( `[${app}] ${chalk.cyanBright.bold(name)} is going ${chalk.redBright.bold('OFFLINE')}.` );
+
       res.status( 201 )
         .send( `[${app}] ${name} is now OFFLINE` );
     }
@@ -158,6 +162,7 @@ export default app => {
     const user = req.body.user;
     apiLogger.info( `${chalk.cyanBright.bold(user)} will be transcoded... Starting transcoders...` );
     transcode.startTranscoder( user );
+
     res.status( 200 )
       .send( `${user} is now being transcoded.` );
   });
@@ -228,6 +233,7 @@ export default app => {
       ffprobeData: t.process._ffprobeData,
       data: t.data
     }));
+
     res.status( 200 )
       .send( data );
   });
