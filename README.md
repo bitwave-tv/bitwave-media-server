@@ -56,7 +56,14 @@ Docker-Compose build & run detatched:
 docker-compose up --build -d
 ```
 
-
+Update Restart & Show Logs:
+```bash
+docker pull bitwavetv/bms-api-server && \
+docker pull bitwavetv/bms-nginx-server && \
+docker-compose up --build -d && \
+docker-compose restart && \
+docker-compose logs --tail 25 -f
+```
 
 
 ### Outdated
