@@ -49,9 +49,11 @@ class ServerData {
     this.streamers.set( streamer, streamerData );
 
     // Probe input stream
-    const endpoint = `rtmp://localhost/live/${streamer}`;
+    const endpoint = `rtmp://nginx-server/live/${streamer}`;
     try {
       ffprobe(endpoint, (err, data) => {
+        log.error( err );
+
         const streams = data.streams;
 
         const videoStream = streams.filter(stream => stream.codec_type === 'video');
