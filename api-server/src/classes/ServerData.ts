@@ -26,8 +26,8 @@ interface IAudioStats {
 interface IStreamerData {
   name: string,
   timestamp: number,
-  video: IVideoStats[]|null,
-  audio: IAudioStats[]|null,
+  video: IVideoStats[],
+  audio: IAudioStats[],
 }
 
 class ServerData {
@@ -42,8 +42,8 @@ class ServerData {
     const streamerData: IStreamerData = {
       name: streamer,
       timestamp: Date.now(),
-      video: null,
-      audio: null,
+      video: [],
+      audio: [],
     };
 
     this.streamers.set( streamer, streamerData );
