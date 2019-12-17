@@ -19,11 +19,26 @@ View Logs:
 docker-compose logs --tail 25 -f
 ```
 
-Build:
+Build NGINX server:
 ```bash
-docker build -t bitwavetv/bitwave-media-server:latest .
+cd nginx-server
+docker build -t bitwavetv/bms-nginx-server:latest .
 - or -
 docker-compose build
+```
+
+Build API server:
+```bash
+cd api-server
+docker build -t bitwavetv/bms-api-server:latest .
+- or -
+docker-compose build
+```
+
+Push updated containers to docker:
+```bash
+docker push bitwavetv/bms-nginx-server
+docker push bitwavetv/bms-api-server
 ```
 
 Exec bash into running container:
