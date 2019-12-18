@@ -20,7 +20,9 @@ import { Transcoder } from '../../classes/Transcoder';
 const transcode = new Transcoder();
 
 const updateDelay = 10;
-const host        = 'http://nginx-server:8080';
+const port        = '5000';
+const server      = 'nginx-server';
+const host        = `http://${server}:${port}`;
 const control     = 'control';
 
 let liveTimers = [];
@@ -45,8 +47,7 @@ export default app => {
     }
 
     if ( app !== 'live' ) {
-      res.status( 200 )
-        .send( `${[app]} Auth not required` );
+      res.status( 200 ).send( `${[app]} Auth not required` );
       return;
     }
 
@@ -95,13 +96,11 @@ export default app => {
 
       apiLogger.info( `[${app}] ${chalk.cyanBright.bold(name)} authorized.` );
 
-      res.status( 200 )
-        .send( `${name} authorized.` );
+      res.status( 200 ).send( `${name} authorized.` );
     } else {
       apiLogger.info( `[${app}] ${chalk.redBright.bold(name)} denied.` );
 
-      res.status( 403 )
-        .send( `${name} denied.` );
+      res.status( 403 ).send( `${name} denied.` );
     }
   });
 
@@ -120,8 +119,7 @@ export default app => {
       }, updateDelay * 1000 );
     }
 
-    res.status( 200 )
-      .send( `[${app}|${name}] is transcoding ${user}.` );
+    res.status( 200 ).send( `[${app}|${name}] is transcoding ${user}.` );
   });
 
   /**
@@ -146,8 +144,7 @@ export default app => {
       await streamauth.setLiveStatus( name, false );
       apiLogger.info( `[${app}] ${chalk.cyanBright.bold(name)} is going ${chalk.redBright.bold('OFFLINE')}.` );
 
-      res.status( 201 )
-        .send( `[${app}] ${name} is now OFFLINE` );
+      res.status( 200 ).send( `[${app}] ${name} is now OFFLINE` );
     }
   });
 
@@ -164,8 +161,7 @@ export default app => {
     apiLogger.info( `${chalk.cyanBright.bold(user)} will be transcoded... Starting transcoders...` );
     transcode.startTranscoder( user );
 
-    res.status( 200 )
-      .send( `${user} is now being transcoded.` );
+    res.status( 200 ).send( `${user} is now being transcoded.` );
   });
 
   /**
@@ -182,8 +178,7 @@ export default app => {
     transcode.stopTranscoder( user );
     apiLogger.info( `${chalk.cyanBright.bold(user)}'s transcoding process has been stopped.` );
 
-    res.status( 200 )
-      .send(`${user} is no longer being transcoded.`);
+    res.status( 200 ).send(`${user} is no longer being transcoded.`);
   });
 
   /**
@@ -200,7 +195,7 @@ export default app => {
       await streamauth.saveArchive( name, response );
     }
 
-    res.status( !!response ? 200 : 502 ).send( !!response ? response : `${name} failed to start archive` );
+    res.status( 200 ).send( !!response ? response : `${name} failed to start archive` );
   });
 
   /**
@@ -216,7 +211,7 @@ export default app => {
       apiLogger.info(`Archive of ${chalk.cyanBright.bold(name)} saved to ${chalk.greenBright(response)}`);
     }
 
-    res.status( !!response ? 200 : 502 ).send( !!response ? response : `${name} failed to stop archive` );
+    res.status( 200 ).send( !!response ? response : `${name} failed to stop archive` );
   });
 
 
@@ -235,8 +230,7 @@ export default app => {
       data: t.data
     }));
 
-    res.status( 200 )
-      .send( data );
+    res.status( 200 ).send( data );
   });
 
   /**
@@ -266,8 +260,48 @@ export default app => {
   });
 
   app.get( '/server/data/:streamer', async ( req, res ) => {
-    const data = serverData.getStreamerData( req.params.streamer );
+    const streamer = req.params.streamer;
+    const data = serverData.getStreamerData( streamer );
+
+    // Verify we got data
+    if ( !data ) {
+      res.status(404).send('Error: streamer not found');
+      return;
+    }
+
+    // Update streamer's data
+    serverData.updateStreamer( streamer );
+
+    // Send results
     res.status(200).send(data);
+  });
+
+
+  /*********************************
+   * Admin Commands
+   */
+
+  app.post( '/admin/drop', async ( req, res ) => {
+    const streamer = req.body.streamer;
+    const token    = req.body.token;
+
+    // Verify token
+    const authorized = await streamauth.verifyToken( token );
+
+    // Get exact streamer endpoint
+    const name = serverData.getStreamerList().find( v => v.toLowerCase() === streamer.toLowerCase() );
+
+    // Construct command
+    const mode = 'drop';
+    const type = 'publisher';
+    const app  = 'live';
+    const response = await rp( `${host}/${control}/${mode}/${type}?app=${app}&name=${name}` );
+
+    // Log results
+    apiLogger.info( `Drop ${name} result: ${response}` );
+
+    // Return result
+    res.status( 200 ).send( response );
   });
 
 };

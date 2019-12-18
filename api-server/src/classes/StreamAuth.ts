@@ -204,6 +204,14 @@ class StreamAuth {
       log.info( error );
     }
   };
+
+  async verifyToken ( token: string ): Promise<boolean> {
+    const decodedToken = await admin.auth().verifyIdToken( token );
+    const uid = decodedToken.uid;
+
+    // Verify user ID is Dispatch / Mark
+    return ( uid === '75RAtLSdbQebdXkFMwYp8JDXdI02' || uid === 'FRTyWPJpnQMzXEEIJ6GQUCn1Om43' );
+  }
 }
 
 export const streamAuth = config => new StreamAuth( config );

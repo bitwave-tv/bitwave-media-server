@@ -11,8 +11,9 @@ interface IResolution {
 }
 
 interface IVideoStats {
+  duration: number,
   codec: string,
-  bitrate: string,
+  bitrate: number,
   fps: string,
   keyframes: number,
   resolution: IResolution,
@@ -20,12 +21,15 @@ interface IVideoStats {
 
 interface IAudioStats {
   codec: string,
-  bitrate: string,
+  bitrate: number,
+  samplerate: number,
+  channels: number,
 }
 
 interface IStreamerData {
   name: string,
   timestamp: number,
+  format: object,
   video: IVideoStats[],
   audio: IAudioStats[],
 }
@@ -42,6 +46,7 @@ class ServerData {
     const streamerData: IStreamerData = {
       name: streamer,
       timestamp: Date.now(),
+      format: {},
       video: [],
       audio: [],
     };
@@ -49,6 +54,10 @@ class ServerData {
     this.streamers.set( streamer, streamerData );
 
     // Probe input stream
+    this.probeStream( streamer );
+  }
+
+  private probeStream ( streamer: string ): void {
     const endpoint = `rtmp://nginx-server/live/${streamer}`;
     try {
       ffprobe(endpoint, (err, data) => {
@@ -63,24 +72,25 @@ class ServerData {
 
         const videoStream = streams.filter(stream => stream.codec_type === 'video');
         const audioStream = streams.filter(stream => stream.codec_type === 'audio');
+        const format      = data.format;
 
-        this.updateStreamerData( streamer, videoStream, audioStream );
+        this.updateStreamerData( streamer, videoStream, audioStream, format );
       });
     } catch ( error ) {
       log.error( error );
     }
   }
 
-  private updateStreamerData ( streamer: string, videoStream: any[], audioStream: any[] ): void {
+  private updateStreamerData ( streamer: string, videoStream: any[], audioStream: any[], format: any ): void {
     let data = this.streamers.get( streamer );
 
-    if ( !data.video ) data.video = [];
-    if ( !data.audio ) data.audio = [];
+    data.video = [];
+    data.audio = [];
 
     if ( videoStream ) {
-      log.info( JSON.stringify( videoStream ) );
       videoStream.forEach( vs => {
         data.video.push({
+          duration: vs.start_time / 60,
           codec: vs.codec_name,
           bitrate: vs.bit_rate,
           fps: vs.avg_frame_rate,
@@ -95,13 +105,23 @@ class ServerData {
     }
 
     if ( audioStream ) {
-      log.info( JSON.stringify( audioStream ) );
       audioStream.forEach( as => {
         data.audio.push({
           codec: as.codec_name,
           bitrate: as.bit_rate,
+          samplerate: as.sample_rate,
+          channels: as.channels,
         });
       });
+
+      if ( format ) {
+        data.format = {
+          filename: format.filename,
+          start_time: format.start_time,
+          probe_score: format.probe_score,
+          tags: format.tags,
+        }
+      }
     }
 
     this.streamers.set( streamer, data );
@@ -109,6 +129,13 @@ class ServerData {
 
   removeStreamer ( streamer: string ): void {
     this.streamers.delete( streamer );
+  }
+
+  updateStreamer ( streamer: string ) {
+    const list = this.getStreamerList();
+    const result = list.find( val => val.toLowerCase() === streamer.toLowerCase() );
+    if ( !result ) return false;
+    this.probeStream( result );
   }
 
   getStreamerList (): string[] {
