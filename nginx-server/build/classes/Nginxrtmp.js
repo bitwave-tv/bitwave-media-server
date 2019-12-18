@@ -46,6 +46,7 @@ var child_process_1 = require("child_process");
 var Logger_1 = require("./Logger");
 var Q = require("q");
 var rp = require("request-promise");
+var chalk = require("chalk");
 var abort;
 /**
  * Class to watch and control the NGINX RTMP server process
@@ -72,7 +73,7 @@ var Nginxrtmp = /** @class */ (function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        this.logger.info('Starting NGINX ...');
+                        this.logger.info('Starting NGINX . . .');
                         timeout = 250;
                         abort = false;
                         if (!useSSL) {
@@ -111,13 +112,13 @@ var Nginxrtmp = /** @class */ (function () {
                             if (_this.allowRestart === true) {
                                 var self_1 = _this;
                                 setTimeout(function () {
-                                    self_1.logger.info('Trying to restart NGINX ...');
+                                    self_1.logger.info('Trying to restart NGINX . . .');
                                     self_1.start();
                                 }, timeout);
                             }
                         });
                         this.process.on('error', function (err) {
-                            _this.logger.error("Failed to spawn NGINX process: " + err.name + ": " + err.message);
+                            _this.logger.error("Failed to spawn NGINX process:\n" + err.name + ": " + err.message);
                         });
                         running = false;
                         _a.label = 1;
@@ -127,7 +128,7 @@ var Nginxrtmp = /** @class */ (function () {
                     case 2:
                         running = _a.sent();
                         if (abort === true) {
-                            this.logger.info('Aborted');
+                            this.logger.info(chalk.bgRedBright.black(' Aborted! '));
                             return [3 /*break*/, 3];
                         }
                         return [3 /*break*/, 1];

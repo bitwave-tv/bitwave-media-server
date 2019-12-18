@@ -16,7 +16,7 @@ var packageJson = require('../package.json');
 var Nginxrtmp_1 = require("./classes/Nginxrtmp");
 var Logger_1 = require("./classes/Logger");
 // Setup Logger
-var webLogger = Logger_1.default('./src/webserver');
+var webLogger = Logger_1.default('BOOT');
 // show start message
 webLogger.info("Starting [bitwave.tv] Media Server " + chalk.bold.greenBright("v" + packageJson.version));
 var fontOptions = {
@@ -37,6 +37,6 @@ if (EnvVar_1.envVar.hasErrors())
 // start NGINX-RTMP
 Nginxrtmp_1.default(config)
     .start(process.env.RS_HTTPS === 'true')
-    .then(function () { return console.log("NGINX-RTMP STARTED"); })
+    .then(function () { return webLogger.info("NGINX-RTMP STARTED"); })
     .catch(function (error) { return webLogger.error("Error starting webserver and nginx for application:\n" + error); });
 //# sourceMappingURL=index.js.map

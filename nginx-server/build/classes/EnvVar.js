@@ -49,7 +49,7 @@ var EnvVar = /** @class */ (function () {
                     this.errors = true;
                 }
                 else {
-                    this.log(envVar_1.name + " = " + envVar_1.defaultValue + " (using default) - " + envVar_1.description, 'info');
+                    this.log(envVar_1.name + " = " + envVar_1.defaultValue + " (default) - " + envVar_1.description, 'info');
                     process.env[envVar_1.name] = envVar_1.defaultValue;
                 }
             }
