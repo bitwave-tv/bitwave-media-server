@@ -1,4 +1,5 @@
 import * as FfmpegCommand from 'fluent-ffmpeg';
+import * as chalk from 'chalk';
 
 import logger from '../classes/Logger';
 const relayLogger = logger( 'RELAY' );
@@ -27,11 +28,11 @@ class StreamRelay {
     // Check for existing transcoders
     const transcoder = this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() );
     if ( transcoder && transcoder.process !== null ) {
-      relayLogger.error( `${user} is already being streamed.` );
+      relayLogger.error( chalk.redBright( `${user} is already being streamed.` ) );
       return;
     }
 
-    relayLogger.info( `Start streaming ${user}` );
+    relayLogger.info( chalk.greenBright( `Start streaming ${user}` ) );
 
     const inputStream  = `rtmp://nginx-server/live/${user}`;
     const outputStream = `rtmp://nginx-server/hls/${user}`;
@@ -41,9 +42,9 @@ class StreamRelay {
 
     ffmpeg.input( inputStream );
     ffmpeg.inputOptions([
-      '-re',
       '-err_detect ignore_err',
       '-stats',
+      // '-re', // should not be used with live data
     ]);
 
     ffmpeg.output( `${outputStream}?user=${user}` );
@@ -69,7 +70,7 @@ class StreamRelay {
 
     ffmpeg
       .on( 'start', commandLine => {
-        console.log( `Starting transcode stream.` );
+        relayLogger.info( chalk.yellowBright( `Starting transcode stream.` ) );
         console.log( commandLine );
         this.transcoders.push({
           user: user,
@@ -84,7 +85,7 @@ class StreamRelay {
       })
 
       .on( 'end', () => {
-        console.log(`Livestream ended.`);
+        relayLogger.info( chalk.redBright( `Livestream ended.` ) );
         this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() ).process = null;
         // retry
       })

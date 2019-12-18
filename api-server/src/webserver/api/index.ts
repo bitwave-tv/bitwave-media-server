@@ -275,7 +275,7 @@ export default app => {
 
   app.get( '/server/data', async ( req, res ) => {
     const data = serverData.getStreamerList();
-    res.status(200).send(data);
+    res.status( 200 ).send( data );
   });
 
   app.get( '/server/data/:streamer', async ( req, res ) => {
@@ -284,7 +284,7 @@ export default app => {
 
     // Verify we got data
     if ( !data ) {
-      res.status(404).send('Error: streamer not found');
+      res.status( 404 ).send( 'Error: streamer not found' );
       return;
     }
 
@@ -326,7 +326,7 @@ export default app => {
 
     // Check if streamer was found
     if ( !name ) {
-      res.status( 404 ).send('Streamer not found');
+      res.status( 404 ).send( 'Streamer not found' );
       return;
     }
 
