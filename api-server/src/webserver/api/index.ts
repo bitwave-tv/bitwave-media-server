@@ -18,6 +18,8 @@ const streamauth = streamAuth({
 import { Transcoder } from '../../classes/Transcoder';
 const transcode = new Transcoder();
 
+import { hlsRelay } from '../../classes/Relay';
+
 import { serverData } from '../../classes/ServerData';
 
 const port    = '5000';
@@ -66,6 +68,11 @@ export default app => {
     const checkKey: boolean = await streamauth.checkStreamKey ( name, key );
 
     if ( checkKey ) {
+      // We are authorized
+
+      // Relay stream to HLS endpoint
+      hlsRelay.startRelay( name );
+
       // If authorized, pre-fetch archive status
       const checkArchive: boolean = await streamauth.checkArchive( name );
 
@@ -81,12 +88,14 @@ export default app => {
         }
 
         // Start stream archive
+        const attempts = 5;
         let response;
-        for ( let i: number = 0; i < 6; i++ ) {
+        for ( let i: number = 0; i <= attempts; i++ ) {
           response = await rp( `${host}/${control}/record/start?app=live&name=${name}&rec=archive` );
           if ( !response ) {
             await new Promise( resolve => setTimeout( resolve, 1000 * 10 ) );
-            apiLogger.info( `${chalk.redBright('Failed to start archive')}, attempting again in 10 seconds (${i}/6)` );
+            apiLogger.info( `${chalk.redBright('Failed to start archive')}, attempting again in 10 seconds (${i}/${attempts})` );
+            if ( i === attempts ) apiLogger.info( `${chalk.redBright('Giving up on archive.')} (out of attempts)` );
           } else {
             apiLogger.info( `Archiving ${chalk.cyanBright.bold(name)} to ${chalk.greenBright(response)}` );
             await streamauth.saveArchive( name, response );
