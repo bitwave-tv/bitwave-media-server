@@ -37,23 +37,33 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+var chalk = require("chalk");
+var rp = require("request-promise");
 var Logger_1 = require("../../classes/Logger");
-var webLogger = Logger_1.default('API');
+var apiLogger = Logger_1.default('APIv1');
 var StreamAuth_1 = require("../../classes/StreamAuth");
 var streamauth = StreamAuth_1.streamAuth({
-    hostServer: process.env['BMS_SERVER_URL'] || 'stream.bitrave.tv',
-    cdnServer: process.env['BMS_CDN_URL'] || 'cdn.stream.bitrave.tv',
+    hostServer: process.env['BMS_SERVER'] || 'stream.bitrave.tv',
+    cdnServer: process.env['BMS_CDN'] || 'cdn.stream.bitrave.tv',
 });
 var Transcoder_1 = require("../../classes/Transcoder");
 var transcode = new Transcoder_1.Transcoder();
-var rp = require("request-promise");
-var updateDelay = 10;
-var host = 'http://nginx-server:8080';
+var ServerData_1 = require("../../classes/ServerData");
+var port = '5000';
+var server = 'nginx-server';
+var host = "http://" + server + ":" + port;
 var control = 'control';
+var liveTimers = [];
+var updateDelay = 10;
 exports.default = (function (app) {
-    // Authorize livestream
+    /*********************************
+     * Authorize Streams
+     */
+    /**
+     * Authorize livestream
+     */
     app.post('/stream/authorize', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
-        var app, name, key, checkKey;
+        var app, name, key, checkKey, checkArchive_1, timer;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -65,8 +75,7 @@ exports.default = (function (app) {
                         return [2 /*return*/];
                     }
                     if (app !== 'live') {
-                        res.status(200)
-                            .send("Auth not required");
+                        res.status(200).send([app] + " Auth not required");
                         return [2 /*return*/];
                     }
                     if (!name || !key) {
@@ -76,51 +85,69 @@ exports.default = (function (app) {
                     return [4 /*yield*/, streamauth.checkStreamKey(name, key)];
                 case 1:
                     checkKey = _a.sent();
-                    if (checkKey) {
-                        setTimeout(function () { return __awaiter(void 0, void 0, void 0, function () {
-                            var response, i;
-                            return __generator(this, function (_a) {
-                                switch (_a.label) {
-                                    case 0: return [4 /*yield*/, streamauth.setLiveStatus(name, true, false)];
-                                    case 1:
-                                        _a.sent();
-                                        i = 0;
-                                        _a.label = 2;
-                                    case 2:
-                                        if (!(i < 3)) return [3 /*break*/, 7];
-                                        return [4 /*yield*/, rp(host + "/" + control + "/record/start?app=live&name=" + name + "&rec=archive")];
-                                    case 3:
-                                        response = _a.sent();
-                                        if (!!response) return [3 /*break*/, 5];
-                                        return [4 /*yield*/, new Promise(function (resolve) { return setTimeout(resolve, 1000 * 10); })];
-                                    case 4:
-                                        _a.sent();
-                                        console.log("Failed to start archive, attempting again in 10 seconds (" + i + "/3)");
-                                        return [3 /*break*/, 6];
-                                    case 5:
-                                        console.log("Archiving " + name + " to " + response);
-                                        return [3 /*break*/, 7];
-                                    case 6:
-                                        i++;
-                                        return [3 /*break*/, 2];
-                                    case 7: return [2 /*return*/];
-                                }
-                            });
-                        }); }, updateDelay * 1000);
-                        webLogger.info("[" + app + "] \u001B[1m\u001B[36m" + name + "\u001B[0m authorized.");
-                        res.status(200)
-                            .send(name + " authorized.");
-                    }
-                    else {
-                        webLogger.info("[" + app + "] " + name + " denied.");
-                        res.status(403)
-                            .send(name + " denied.");
-                    }
-                    return [2 /*return*/];
+                    if (!checkKey) return [3 /*break*/, 3];
+                    return [4 /*yield*/, streamauth.checkArchive(name)];
+                case 2:
+                    checkArchive_1 = _a.sent();
+                    timer = setTimeout(function () { return __awaiter(void 0, void 0, void 0, function () {
+                        var response, i;
+                        return __generator(this, function (_a) {
+                            switch (_a.label) {
+                                case 0: 
+                                // Update live status
+                                return [4 /*yield*/, streamauth.setLiveStatus(name, true)];
+                                case 1:
+                                    // Update live status
+                                    _a.sent();
+                                    // Check if we should archive stream
+                                    if (!checkArchive_1) {
+                                        apiLogger.info("Archiving is disabled for " + chalk.cyanBright.bold(name));
+                                        return [2 /*return*/];
+                                    }
+                                    i = 0;
+                                    _a.label = 2;
+                                case 2:
+                                    if (!(i < 6)) return [3 /*break*/, 8];
+                                    return [4 /*yield*/, rp(host + "/" + control + "/record/start?app=live&name=" + name + "&rec=archive")];
+                                case 3:
+                                    response = _a.sent();
+                                    if (!!response) return [3 /*break*/, 5];
+                                    return [4 /*yield*/, new Promise(function (resolve) { return setTimeout(resolve, 1000 * 10); })];
+                                case 4:
+                                    _a.sent();
+                                    apiLogger.info(chalk.redBright('Failed to start archive') + ", attempting again in 10 seconds (" + i + "/6)");
+                                    return [3 /*break*/, 7];
+                                case 5:
+                                    apiLogger.info("Archiving " + chalk.cyanBright.bold(name) + " to " + chalk.greenBright(response));
+                                    return [4 /*yield*/, streamauth.saveArchive(name, response)];
+                                case 6:
+                                    _a.sent();
+                                    return [3 /*break*/, 8];
+                                case 7:
+                                    i++;
+                                    return [3 /*break*/, 2];
+                                case 8: return [2 /*return*/];
+                            }
+                        });
+                    }); }, updateDelay * 1000);
+                    liveTimers.push({
+                        user: name,
+                        timer: timer,
+                    });
+                    apiLogger.info("[" + app + "] " + chalk.cyanBright.bold(name) + " authorized.");
+                    res.status(200).send(name + " authorized.");
+                    return [3 /*break*/, 4];
+                case 3:
+                    apiLogger.info("[" + app + "] " + chalk.redBright.bold(name) + " denied.");
+                    res.status(403).send(name + " denied.");
+                    _a.label = 4;
+                case 4: return [2 /*return*/];
             }
         });
     }); });
-    // Transcoded stream start
+    /**
+     * Transcoded stream start
+     */
     app.post('/stream/transcode', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
         var user, app, name;
         return __generator(this, function (_a) {
@@ -131,21 +158,22 @@ exports.default = (function (app) {
                 setTimeout(function () { return __awaiter(void 0, void 0, void 0, function () {
                     return __generator(this, function (_a) {
                         switch (_a.label) {
-                            case 0: return [4 /*yield*/, streamauth.setLiveStatus(user, true, true)];
+                            case 0: return [4 /*yield*/, streamauth.setTranscodeStatus(user, true)];
                             case 1:
                                 _a.sent();
-                                console.log("[" + app + "] " + user + " is now transcoded.");
+                                apiLogger.info("[" + app + "] " + chalk.cyanBright.bold(user) + " is now " + chalk.greenBright.bold('transcoded') + ".");
                                 return [2 /*return*/];
                         }
                     });
                 }); }, updateDelay * 1000);
             }
-            res.status(200)
-                .send("[" + app + "|" + name + "] is transcoding " + user + ".");
+            res.status(200).send("[" + app + "|" + name + "] is transcoding " + user + ".");
             return [2 /*return*/];
         });
     }); });
-    // Livestream disconnect
+    /**
+     * Livestream disconnect
+     */
     app.post('/stream/end', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
         var app, name;
         return __generator(this, function (_a) {
@@ -154,59 +182,228 @@ exports.default = (function (app) {
                     app = req.body.app;
                     name = req.body.name;
                     if (!(app === 'live')) return [3 /*break*/, 2];
+                    // Prevent live from firing if we go offline
+                    liveTimers.map(function (val) {
+                        if (val.user === name)
+                            clearTimeout(val.timer);
+                        else
+                            return val;
+                    });
+                    // Set offline status
                     return [4 /*yield*/, streamauth.setLiveStatus(name, false)];
                 case 1:
+                    // Set offline status
                     _a.sent();
-                    console.log("[" + app + "] \u001B[1m\u001B[36m" + name + "\u001B[0m stopped streaming.");
-                    res.status(201)
-                        .send("[" + app + "] " + name + " is now OFFLINE");
+                    apiLogger.info("[" + app + "] " + chalk.cyanBright.bold(name) + " is going " + chalk.redBright.bold('OFFLINE') + ".");
+                    res.status(200).send("[" + app + "] " + name + " is now OFFLINE");
                     _a.label = 2;
                 case 2: return [2 /*return*/];
             }
         });
     }); });
-    // Start transcoding stream
-    app.post('/stream/start-transcode', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    /*********************************
+     * Commands & Controls
+     */
+    /**
+     * Start transcoding stream
+     */
+    app.post('/stream/transcode/start', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
         var user;
         return __generator(this, function (_a) {
             user = req.body.user;
-            console.log(user + " will be transcoded... Starting transcoders...");
+            apiLogger.info(chalk.cyanBright.bold(user) + " will be transcoded... Starting transcoders...");
             transcode.startTranscoder(user);
-            res.status(200)
-                .send(user + " is now being transcoded.");
+            res.status(200).send(user + " is now being transcoded.");
             return [2 /*return*/];
         });
     }); });
-    // Stop transcoding stream
-    app.post('/stream/stop-transcode', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    /**
+     * Stop transcoding stream
+     */
+    app.post('/stream/transcode/stop', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
         var user;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     user = req.body.user;
-                    console.log(user + " will no longer be transcoded.");
+                    apiLogger.info(chalk.cyanBright.bold(user) + " will no longer be transcoded.");
                     // Revert streamer endpoint
-                    return [4 /*yield*/, streamauth.setLiveStatus(user, true, false)];
+                    return [4 /*yield*/, streamauth.setTranscodeStatus(user, false)];
                 case 1:
                     // Revert streamer endpoint
                     _a.sent();
-                    console.log(user + "'s endpoint has been reverted");
+                    apiLogger.info(chalk.cyanBright.bold(user) + "'s endpoint has been reverted");
                     transcode.stopTranscoder(user);
-                    console.log(user + "'s transcoding process has been stopped.");
-                    res.status(200)
-                        .send(user + " is no longer being transcoded.");
+                    apiLogger.info(chalk.cyanBright.bold(user) + "'s transcoding process has been stopped.");
+                    res.status(200).send(user + " is no longer being transcoded.");
                     return [2 /*return*/];
             }
         });
     }); });
-    // Transcoded stream stats
-    app.get('/stream/stats', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+    /**
+     * Start stream recorder
+     */
+    app.post('/stream/record/start', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+        var name, response;
         return __generator(this, function (_a) {
-            res.status(200)
-                .send(transcode.transcoders.map(function (t) { return ({ user: t.user, data: t.data }); }));
+            switch (_a.label) {
+                case 0:
+                    name = req.body.name;
+                    return [4 /*yield*/, rp(host + "/" + control + "/record/start?app=live&name=" + name + "&rec=archive")];
+                case 1:
+                    response = _a.sent();
+                    if (!!response) return [3 /*break*/, 2];
+                    apiLogger.info(chalk.redBright('Failed to start archive') + ", please try again.");
+                    return [3 /*break*/, 4];
+                case 2:
+                    apiLogger.info("Archiving " + chalk.cyanBright.bold(name) + " to " + chalk.greenBright(response));
+                    return [4 /*yield*/, streamauth.saveArchive(name, response)];
+                case 3:
+                    _a.sent();
+                    _a.label = 4;
+                case 4:
+                    res.status(200).send(!!response ? response : name + " failed to start archive");
+                    return [2 /*return*/];
+            }
+        });
+    }); });
+    /**
+     * Stop stream recorder
+     */
+    app.post('/stream/record/stop', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+        var name, response;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    name = req.body.name;
+                    return [4 /*yield*/, rp(host + "/" + control + "/record/stop?app=live&name=" + name + "&rec=archive")];
+                case 1:
+                    response = _a.sent();
+                    if (!response) {
+                        apiLogger.info(chalk.redBright('Failed to stop archive') + ", please try again.");
+                    }
+                    else {
+                        apiLogger.info("Archive of " + chalk.cyanBright.bold(name) + " saved to " + chalk.greenBright(response));
+                    }
+                    res.status(200).send(!!response ? response : name + " failed to stop archive");
+                    return [2 /*return*/];
+            }
+        });
+    }); });
+    /*********************************
+     * Stream Data
+     */
+    /**
+     * Transcoded stream stats
+     */
+    app.get('/stream/stats', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+        var data;
+        return __generator(this, function (_a) {
+            data = transcode.transcoders.map(function (t) { return ({
+                user: t.user,
+                ffmpegProc: t.process.ffmpegProc,
+                ffprobeData: t.process._ffprobeData,
+                data: t.data
+            }); });
+            res.status(200).send(data);
             return [2 /*return*/];
         });
     }); });
-    // TODO: create API endpoint /stream/stats/{streamer}
+    /**
+     * Transcoded stream stats for single user
+     */
+    app.get('/stream/stats/:user', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+        var data;
+        return __generator(this, function (_a) {
+            data = transcode.transcoders
+                .filter(function (stats) { return stats.user.toLowerCase() === req.params.user.toLowerCase(); })
+                .map(function (stats) { return ({ user: stats.user, ffmpegProc: stats.process.ffmpegProc, data: stats.data }); });
+            res.status(200)
+                .send(transcode.transcoders.filter(function (stats) {
+                if (stats.user.toLowerCase() === req.params.user.toLowerCase()) {
+                    return { user: stats.user, data: stats.data };
+                }
+            }));
+            return [2 /*return*/];
+        });
+    }); });
+    /*********************************
+     * Server Data
+     */
+    app.get('/server/data', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+        var data;
+        return __generator(this, function (_a) {
+            data = ServerData_1.serverData.getStreamerList();
+            res.status(200).send(data);
+            return [2 /*return*/];
+        });
+    }); });
+    app.get('/server/data/:streamer', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+        var streamer, data;
+        return __generator(this, function (_a) {
+            streamer = req.params.streamer;
+            data = ServerData_1.serverData.getStreamerData(streamer);
+            // Verify we got data
+            if (!data) {
+                res.status(404).send('Error: streamer not found');
+                return [2 /*return*/];
+            }
+            // Update streamer's data
+            ServerData_1.serverData.updateStreamer(streamer);
+            // Send results
+            res.status(200).send(data);
+            return [2 /*return*/];
+        });
+    }); });
+    /*********************************
+     * Admin Commands
+     */
+    app.post('/admin/drop', function (req, res) { return __awaiter(void 0, void 0, void 0, function () {
+        var streamer, token, authorized, error_1, name, mode, type, app, response;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    streamer = req.body.streamer;
+                    token = req.body.token;
+                    if (!streamer || !token) {
+                        res.status(422).send('Missing required parameters');
+                        return [2 /*return*/];
+                    }
+                    _a.label = 1;
+                case 1:
+                    _a.trys.push([1, 3, , 4]);
+                    return [4 /*yield*/, streamauth.verifyAdminToken(token)];
+                case 2:
+                    authorized = _a.sent();
+                    if (!authorized) {
+                        res.status(403).send('Authentication Failed');
+                        return [2 /*return*/];
+                    }
+                    return [3 /*break*/, 4];
+                case 3:
+                    error_1 = _a.sent();
+                    res.status(403).send(error_1);
+                    return [2 /*return*/];
+                case 4:
+                    name = ServerData_1.serverData.getStreamer(streamer);
+                    // Check if streamer was found
+                    if (!name) {
+                        res.status(404).send('Streamer not found');
+                        return [2 /*return*/];
+                    }
+                    mode = 'drop';
+                    type = 'publisher';
+                    app = 'live';
+                    return [4 /*yield*/, rp(host + "/" + control + "/" + mode + "/" + type + "?app=" + app + "&name=" + name)];
+                case 5:
+                    response = _a.sent();
+                    // Log results
+                    apiLogger.info("Drop " + name + " result: " + response);
+                    // Return result
+                    res.status(200).send(response);
+                    return [2 /*return*/];
+            }
+        });
+    }); });
 });
 //# sourceMappingURL=index.js.map

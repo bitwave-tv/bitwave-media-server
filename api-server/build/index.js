@@ -17,7 +17,7 @@ var chalk = require("chalk");
 var packageJson = require('../package.json');
 var server_1 = require("./webserver/server");
 var Logger_1 = require("./classes/Logger");
-var webLogger = Logger_1.default('./webserver');
+var webLogger = Logger_1.default('BOOT');
 // show start message
 webLogger.info("Starting [bitwave.tv] Media Server " + chalk.bold.greenBright("v" + packageJson.version));
 var fontOptions = {
@@ -36,6 +36,11 @@ EnvVar_1.envVar.list(webLogger);
 // bail out if there are errors
 if (EnvVar_1.envVar.hasErrors())
     process.exit();
+if (process.env['CICD'] === 'true') {
+    setTimeout(function () {
+        process.exit(0);
+    }, 5 * 1000);
+}
 // start the app
 var server = server_1.bitwaveMediaServer(__public);
 server.startWebserver();

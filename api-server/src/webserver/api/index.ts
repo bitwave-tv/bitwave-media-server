@@ -2,6 +2,7 @@
 
 'use strict';
 
+import Timeout = NodeJS.Timeout;
 import * as chalk from 'chalk';
 import * as rp from 'request-promise';
 
@@ -9,8 +10,6 @@ import logger from '../../classes/Logger';
 const apiLogger = logger( 'APIv1' );
 
 import { streamAuth } from '../../classes/StreamAuth';
-import { serverData } from '../../classes/ServerData';
-
 const streamauth = streamAuth({
   hostServer : process.env['BMS_SERVER'] || 'stream.bitrave.tv',
   cdnServer  : process.env['BMS_CDN']    || 'cdn.stream.bitrave.tv',
@@ -19,13 +18,20 @@ const streamauth = streamAuth({
 import { Transcoder } from '../../classes/Transcoder';
 const transcode = new Transcoder();
 
-const updateDelay = 10;
-const port        = '5000';
-const server      = 'nginx-server';
-const host        = `http://${server}:${port}`;
-const control     = 'control';
+import { serverData } from '../../classes/ServerData';
 
-let liveTimers = [];
+const port    = '5000';
+const server  = 'nginx-server';
+const host    = `http://${server}:${port}`;
+const control = 'control';
+
+interface ILiveTimer {
+  user: string;
+  timer: Timeout;
+}
+
+let liveTimers: ILiveTimer[] = [];
+const updateDelay: number    = 10;
 
 export default app => {
 
@@ -57,13 +63,13 @@ export default app => {
     }
 
     // Verify stream key
-    const checkKey = await streamauth.checkStreamKey ( name, key );
+    const checkKey: boolean = await streamauth.checkStreamKey ( name, key );
 
     if ( checkKey ) {
       // If authorized, pre-fetch archive status
-      const checkArchive = await streamauth.checkArchive( name );
+      const checkArchive: boolean = await streamauth.checkArchive( name );
 
-      const timer = setTimeout( async () => {
+      const timer: Timeout = setTimeout( async () => {
 
         // Update live status
         await streamauth.setLiveStatus( name, true );
@@ -76,7 +82,7 @@ export default app => {
 
         // Start stream archive
         let response;
-        for ( let i = 0; i < 6; i++ ) {
+        for ( let i: number = 0; i < 6; i++ ) {
           response = await rp( `${host}/${control}/record/start?app=live&name=${name}&rec=archive` );
           if ( !response ) {
             await new Promise( resolve => setTimeout( resolve, 1000 * 10 ) );
@@ -133,11 +139,11 @@ export default app => {
     if ( app === 'live' ) {
 
       // Prevent live from firing if we go offline
-      liveTimers.map( e => {
-        if ( e.user === name )
-          clearTimeout( e.timer );
+      liveTimers.map( val => {
+        if ( val.user === name )
+          clearTimeout( val.timer );
         else
-          return e;
+          return val;
       });
 
       // Set offline status
@@ -158,6 +164,7 @@ export default app => {
    */
   app.post( '/stream/transcode/start', async ( req, res ) => {
     const user = req.body.user;
+
     apiLogger.info( `${chalk.cyanBright.bold(user)} will be transcoded... Starting transcoders...` );
     transcode.startTranscoder( user );
 
@@ -169,6 +176,7 @@ export default app => {
    */
   app.post( '/stream/transcode/stop', async ( req, res ) => {
     const user = req.body.user;
+
     apiLogger.info( `${chalk.cyanBright.bold(user)} will no longer be transcoded.` );
 
     // Revert streamer endpoint
@@ -186,6 +194,7 @@ export default app => {
    */
   app.post( '/stream/record/start', async ( req, res ) => {
     const name = req.body.name;
+
     const response = await rp( `${host}/${control}/record/start?app=live&name=${name}&rec=archive` );
 
     if ( !response ) {
@@ -203,6 +212,7 @@ export default app => {
    */
   app.post( '/stream/record/stop', async ( req, res ) => {
     const name = req.body.name;
+
     const response = await rp( `${host}/${control}/record/stop?app=live&name=${name}&rec=archive` );
 
     if ( !response ) {
@@ -273,7 +283,7 @@ export default app => {
     serverData.updateStreamer( streamer );
 
     // Send results
-    res.status(200).send(data);
+    res.status( 200 ).send( data );
   });
 
 
@@ -285,11 +295,31 @@ export default app => {
     const streamer = req.body.streamer;
     const token    = req.body.token;
 
+    if ( !streamer || !token ) {
+      res.status( 422 ).send( 'Missing required parameters' );
+      return;
+    }
+
     // Verify token
-    const authorized = await streamauth.verifyToken( token );
+    try {
+      const authorized = await streamauth.verifyAdminToken( token );
+      if ( !authorized ) {
+        res.status( 403 ).send( 'Authentication Failed' );
+        return;
+      }
+    } catch ( error ) {
+      res.status( 403 ).send( error );
+      return;
+    }
 
     // Get exact streamer endpoint
-    const name = serverData.getStreamerList().find( v => v.toLowerCase() === streamer.toLowerCase() );
+    const name = serverData.getStreamer( streamer );
+
+    // Check if streamer was found
+    if ( !name ) {
+      res.status( 404 ).send('Streamer not found');
+      return;
+    }
 
     // Construct command
     const mode = 'drop';

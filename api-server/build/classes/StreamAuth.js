@@ -37,14 +37,21 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
     }
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-// import logger from '../../classes/Logger';
-// const webLogger = logger('webserver');
+var Logger_1 = require("./Logger");
+var log = Logger_1.default('AUTH');
+var ServerData_1 = require("./ServerData");
+var chalk = require("chalk");
 var admin = require("firebase-admin");
-var serviceAccount = require('../../creds/service-account.json');
-admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: 'https://bitwave-7f415.firebaseio.com',
-});
+var rp = require("request-promise");
+// Do not attempt to log credentials for CI/CD pipeline
+var CICD = process.env['CICD'] === 'true';
+if (!CICD) {
+    var serviceAccount = require('../../creds/service-account.json');
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        databaseURL: 'https://bitwave-7f415.firebaseio.com',
+    });
+}
 var hlsStream = "hls";
 var transcodeStream = "transcode";
 var thumbnail = "preview";
@@ -55,8 +62,8 @@ var StreamAuth = /** @class */ (function () {
     }
     /**
      * Retrieves a user's stream key if available
-     * @param username - The user whose key to retrieve
-     * @returns {Promise<*>} - Returns key if found, else null
+     * @param {string} username - The user whose key to retrieve
+     * @returns {Promise<string|null>} - Returns key if found, else null
      */
     StreamAuth.prototype.getStreamKey = function (username) {
         return __awaiter(this, void 0, void 0, function () {
@@ -64,24 +71,26 @@ var StreamAuth = /** @class */ (function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        streamRef = admin.firestore().collection('users').where('_username', '==', username.toLowerCase()).limit(1);
+                        streamRef = admin.firestore()
+                            .collection('users')
+                            .where('_username', '==', username.toLowerCase())
+                            .limit(1);
                         return [4 /*yield*/, streamRef.get()];
                     case 1:
                         docs = _a.sent();
                         if (!docs.empty) {
                             key = docs.docs[0].get('streamkey');
-                            if (!!key) {
+                            if (!!key)
                                 return [2 /*return*/, key]; // User has a key
-                            }
                             if (key === undefined)
-                                console.log(username + " does not have a key! (undefined)");
+                                log.info(username + " does not have a key! (undefined)");
                             else
-                                console.log("\u001B[91mERROR:\u001B[0m " + username + "'s key is invalid! " + key);
+                                log.info(chalk.bgRedBright.black(' ERROR: ') + " " + username + "'s key is invalid! '" + key + "'");
                             return [2 /*return*/, null];
                         }
                         else {
-                            console.log("\u001B[91mERROR:\u001B[0m User \u001B[1m\u001B[36m" + username + "\u001B[0m could not be found!");
-                            return [2 /*return*/, undefined];
+                            log.info(chalk.bgRedBright.black(' ERROR: ') + "  User " + chalk.bgYellowBright(username) + " could not be found!");
+                            return [2 /*return*/, null];
                         }
                         return [2 /*return*/];
                 }
@@ -91,8 +100,8 @@ var StreamAuth = /** @class */ (function () {
     ;
     /**
      * Verify & Authorize a user's stream via streamkey
-     * @param username - name of user attempting to stream
-     * @param key - user's streamkey
+     * @param {string} username - name of user attempting to stream
+     * @param {string} key - user's streamkey
      * @returns {Promise<boolean>} - Returns true if user's streamkey matches database
      */
     StreamAuth.prototype.checkStreamKey = function (username, key) {
@@ -102,44 +111,93 @@ var StreamAuth = /** @class */ (function () {
                 switch (_a.label) {
                     case 0:
                         if (!key) {
-                            console.log("\u001B[91mERROR:\u001B[0m " + username + " did not provide a streamkey");
+                            log.info(chalk.bgRedBright.black(' ERROR: ') + " " + username + " did not provide a streamkey.");
                             return [2 /*return*/, false];
                         }
                         return [4 /*yield*/, this.getStreamKey(username)];
                     case 1:
                         streamKey = _a.sent();
                         if (!streamKey) {
-                            // console.log(`\x1b[91mERROR:\x1b[0m ${username} does not have a stream key`);
+                            log.info(chalk.bgRedBright.black(' ERROR: ') + " " + username + " does not have a stream key");
                             return [2 /*return*/, false];
                         }
                         if (key !== streamKey) {
-                            console.log("\u001B[91mDENIED:\u001B[0m " + username + " supplied an invalid streamkey");
+                            log.info(chalk.bgRedBright.black(' ERROR: ') + " " + username + " supplied an invalid streamkey");
                             return [2 /*return*/, false];
                         }
                         if (key === streamKey) {
-                            console.log("\u001B[1m\u001B[32mSUCCES:\u001B[0m " + username + " stream authorized");
+                            log.info(chalk.bgGreenBright.black(' SUCCESS: ') + " " + username + "'s stream authorized");
                             return [2 /*return*/, true];
                         }
-                        console.log("\u001B[91mERROR:\u001B[0m Unknown fail condiiton while attempting to authorize stream");
+                        log.info(chalk.bgRedBright.black(' ERROR: ') + " Unknown fail condiiton while attempting to authorize stream!");
                         return [2 /*return*/, false];
                 }
             });
         });
     };
     ;
-    StreamAuth.prototype.setLiveStatus = function (username, state, transcoded) {
+    /**
+     * Set streamer live status and transcode status
+     * @param {string} username - Streamer's username
+     * @param {boolean} state - LIVE / OFFLINE status
+     * @return {Promise<void>}
+     */
+    StreamAuth.prototype.setLiveStatus = function (username, state) {
         return __awaiter(this, void 0, void 0, function () {
-            var _username, streamRef, doc, url;
+            var streamRef, doc, streamUrl, thumbUrl;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        _username = username.toLowerCase();
-                        streamRef = admin.firestore().collection('streams').doc(_username);
+                        streamRef = admin.firestore().collection('streams').doc(username.toLowerCase());
                         return [4 /*yield*/, streamRef.get()];
                     case 1:
                         doc = _a.sent();
                         if (!doc.exists) {
-                            console.log("ERROR: " + username + " is not a valid streamer");
+                            log.info(chalk.bgRedBright.black('ERROR:') + " " + username + " is not a valid streamer");
+                            return [2 /*return*/];
+                        }
+                        streamUrl = "https://" + this.cdnServer + "/" + hlsStream + "/" + username + "/index.m3u8";
+                        thumbUrl = "https://" + this.cdnServer + "/" + thumbnail + "/" + username + ".png";
+                        return [4 /*yield*/, streamRef.update({
+                                live: state,
+                                url: streamUrl,
+                                thumbnail: thumbUrl,
+                                rtmp: username,
+                                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                            })];
+                    case 2:
+                        _a.sent();
+                        if (state) {
+                            ServerData_1.serverData.addStreamer(username);
+                        }
+                        else {
+                            ServerData_1.serverData.removeStreamer(username);
+                        }
+                        log.info(chalk.cyanBright(username) + " is now " + (state ? chalk.greenBright.bold('LIVE') : chalk.redBright.bold('OFFLINE')));
+                        return [2 /*return*/];
+                }
+            });
+        });
+    };
+    ;
+    /**
+     * Set transcode status and livestream endpoint
+     * @param {string} username - Streamer's username
+     * @param {boolean} transcoded - Transcode status
+     * @return {Promise<void>}
+     */
+    StreamAuth.prototype.setTranscodeStatus = function (username, transcoded) {
+        return __awaiter(this, void 0, void 0, function () {
+            var streamRef, doc, url;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        streamRef = admin.firestore().collection('streams').doc(username.toLowerCase());
+                        return [4 /*yield*/, streamRef.get()];
+                    case 1:
+                        doc = _a.sent();
+                        if (!doc.exists) {
+                            log.info(chalk.bgRedBright.black('ERROR:') + " " + username + " is not a valid streamer");
                             return [2 /*return*/];
                         }
                         if (transcoded) {
@@ -149,19 +207,109 @@ var StreamAuth = /** @class */ (function () {
                             url = "https://" + this.cdnServer + "/" + hlsStream + "/" + username + "/index.m3u8";
                         }
                         return [4 /*yield*/, streamRef.update({
-                                live: state,
                                 url: url,
-                                thumbnail: "https://" + this.cdnServer + "/" + thumbnail + "/" + username + ".png",
                             })];
                     case 2:
                         _a.sent();
-                        console.log("\u001B[1m\u001B[36m" + username + "\u001B[0m is now \u001B[1m" + (state ? '\x1b[32mLIVE' : '\x1b[91mOFFLINE') + "\u001B[0m");
+                        log.info(chalk.cyanBright(username) + "'s transcoder has " + (transcoded ? chalk.greenBright.bold('started') : chalk.redBright.bold('stopped')) + ".");
                         return [2 /*return*/];
                 }
             });
         });
     };
     ;
+    /**
+     * Check streamer's archive setting
+     * @param {string} username - Streamer's username
+     * @return {Promise<boolean>}
+     */
+    StreamAuth.prototype.checkArchive = function (username) {
+        return __awaiter(this, void 0, void 0, function () {
+            var streamRef, doc, data;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        streamRef = admin.firestore().collection('streams').doc(username.toLowerCase());
+                        return [4 /*yield*/, streamRef.get()];
+                    case 1:
+                        doc = _a.sent();
+                        if (!doc.exists) {
+                            log.info(chalk.bgRedBright.black('ERROR:') + " " + username + " is not a valid streamer");
+                            return [2 /*return*/];
+                        }
+                        data = doc.data();
+                        return [2 /*return*/, !!data.archive];
+                }
+            });
+        });
+    };
+    ;
+    /**
+     * Passes archive information to API server
+     * @param {string} username
+     * @param {string} location
+     * @return {Promise<void>}
+     */
+    StreamAuth.prototype.saveArchive = function (username, location) {
+        return __awaiter(this, void 0, void 0, function () {
+            var options, response, error_1;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        options = {
+                            headers: {
+                                'content-type': 'application/x-www-form-urlencoded',
+                            },
+                            form: {
+                                server: this.hostServer,
+                                username: username,
+                                location: location,
+                            },
+                        };
+                        _a.label = 1;
+                    case 1:
+                        _a.trys.push([1, 3, , 4]);
+                        return [4 /*yield*/, rp.post('https://api.bitwave.tv/api/archives/add', options)];
+                    case 2:
+                        response = _a.sent();
+                        log.info(response);
+                        return [3 /*break*/, 4];
+                    case 3:
+                        error_1 = _a.sent();
+                        log.info(error_1);
+                        return [3 /*break*/, 4];
+                    case 4: return [2 /*return*/];
+                }
+            });
+        });
+    };
+    ;
+    /**
+     * Verifies user token & checks if user is admin
+     * @param {string} token
+     * @return {Promise<boolean>}
+     */
+    StreamAuth.prototype.verifyAdminToken = function (token) {
+        return __awaiter(this, void 0, void 0, function () {
+            var decodedToken, uid, userDoc, data;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0: return [4 /*yield*/, admin.auth().verifyIdToken(token)];
+                    case 1:
+                        decodedToken = _a.sent();
+                        uid = decodedToken.uid;
+                        return [4 /*yield*/, admin.firestore().collection('users').doc(uid).get()];
+                    case 2:
+                        userDoc = _a.sent();
+                        data = userDoc.data();
+                        // Check if user has admin role
+                        return [2 /*return*/, data.hasOwnProperty('role')
+                                ? data.role === 'admin'
+                                : false];
+                }
+            });
+        });
+    };
     return StreamAuth;
 }());
 exports.streamAuth = function (config) { return new StreamAuth(config); };

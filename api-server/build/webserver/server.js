@@ -9,12 +9,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var express = require("express");
 var bodyParser = require("body-parser");
 var compression = require("compression");
+var chalk = require("chalk");
 // other
 var path = require("path");
 var Q = require("q");
 // modules
 var Logger_1 = require("../classes/Logger");
-var nodeLogger = Logger_1.default('node');
+var nodeLogger = Logger_1.default('EXPRS');
 var api_1 = require("./api");
 // const apiV1 = require('./controllers/api/v1');
 // middleware
@@ -71,7 +72,7 @@ var BitwaveMediaServer = /** @class */ (function () {
      */
     BitwaveMediaServer.prototype.add404ErrorHandling = function () {
         this.app.use(function (req, res, next) {
-            var err = new Error("[404] Page Not Found " + req.url);
+            var err = new Error(chalk.gray("[404] Error " + req.url));
             res.status(404);
             next(err);
         });
@@ -93,11 +94,11 @@ var BitwaveMediaServer = /** @class */ (function () {
     BitwaveMediaServer.prototype.startWebserver = function () {
         var _this = this;
         var deferred = Q.defer();
-        nodeLogger.info('Starting Node.js server ...');
+        nodeLogger.info('Starting Node.js API server . . .');
         this.app.set('port', process.env.BMS_NODEJS_PORT);
         var server = this.app.listen(this.app.get('port'), function () {
             _this.app.set('server', server.address());
-            nodeLogger.info("Node.js running on " + process.env.BMS_NODEJS_PORT);
+            nodeLogger.info("Node.js API server running on " + process.env.BMS_NODEJS_PORT);
             deferred.resolve(server.address().port);
         });
         return deferred.promise;
@@ -117,7 +118,7 @@ var BitwaveMediaServer = /** @class */ (function () {
      */
     BitwaveMediaServer.prototype.initProd = function () {
         var _this = this;
-        nodeLogger.debug('Init webserver with PROD environment');
+        nodeLogger.debug('Starting API server - PROD environment');
         this.initAlways();
         this.app.get('/', function (req, res) {
             res.sendFile(path.join(_this.__public, 'index.prod.html'));
@@ -130,7 +131,7 @@ var BitwaveMediaServer = /** @class */ (function () {
      */
     BitwaveMediaServer.prototype.initDev = function () {
         var _this = this;
-        nodeLogger.debug('Init webserver with DEV environment');
+        nodeLogger.debug('Starting API server - DEV environment');
         this.initAlways();
         this.app.get('/', function (req, res) {
             res.sendFile(path.join(_this.__public, 'index.dev.html'));

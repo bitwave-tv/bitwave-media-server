@@ -12,7 +12,7 @@ import * as admin from 'firebase-admin';
 import * as rp from 'request-promise';
 
 // Do not attempt to log credentials for CI/CD pipeline
-const CICD = process.env['CICD'] === 'true';
+const CICD: boolean = process.env['CICD'] === 'true';
 if ( !CICD ) {
   const serviceAccount = require('../../creds/service-account.json');
   admin.initializeApp({
@@ -21,9 +21,9 @@ if ( !CICD ) {
   });
 }
 
-const hlsStream  = `hls`;
-const transcodeStream = `transcode`;
-const thumbnail  = `preview`;
+const hlsStream: string  = `hls`;
+const transcodeStream: string = `transcode`;
+const thumbnail: string  = `preview`;
 
 class StreamAuth {
   private readonly hostServer: string;
@@ -50,8 +50,7 @@ class StreamAuth {
     if ( !docs.empty ) {
       const key = docs.docs[0].get( 'streamkey' );
 
-      if ( !!key )
-        return key; // User has a key
+      if ( !!key ) return key; // User has a key
 
       if ( key === undefined )
         log.info( `${username} does not have a key! (undefined)` );
@@ -198,19 +197,31 @@ class StreamAuth {
     };
 
     try {
-      const response = await rp.post( 'https://api.bitwave.tv/api/archives/add',  options);
+      const response = await rp.post( 'https://api.bitwave.tv/api/archives/add',  options );
       log.info( response );
     } catch ( error ) {
       log.info( error );
     }
   };
 
-  async verifyToken ( token: string ): Promise<boolean> {
+  /**
+   * Verifies user token & checks if user is admin
+   * @param {string} token
+   * @return {Promise<boolean>}
+   */
+  async verifyAdminToken ( token: string ): Promise<boolean> {
+    // Verify token and get UID
     const decodedToken = await admin.auth().verifyIdToken( token );
     const uid = decodedToken.uid;
 
-    // Verify user ID is Dispatch / Mark
-    return ( uid === '75RAtLSdbQebdXkFMwYp8JDXdI02' || uid === 'FRTyWPJpnQMzXEEIJ6GQUCn1Om43' );
+    // Get user data
+    const userDoc = await admin.firestore().collection( 'users' ).doc( uid ).get();
+    const data = userDoc.data();
+
+    // Check if user has admin role
+    return data.hasOwnProperty( 'role' )
+      ? data.role === 'admin'
+      : false;
   }
 }
 

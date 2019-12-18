@@ -6,16 +6,17 @@
  */
 'use strict';
 Object.defineProperty(exports, "__esModule", { value: true });
+var chalk = require("chalk");
 var Logger_1 = require("../../classes/Logger");
-var webLogger = Logger_1.default('API');
+var webLogger = Logger_1.default('EXPRS');
 exports.default = (function (req, res, next) {
     req._startTime = new Date();
     var log = function () {
         var code = res.statusCode;
         var url = (req.originalUrl || req.url);
-        webLogger.debug(req.method + " \"" + url + "\" " + code + " " + req.ip);
+        webLogger.debug(req.method + " " + code + " '" + url + "'"); // req.ip
         if (req.body)
-            webLogger.debug(req.body.app + "|" + req.body.name);
+            webLogger.debug("[" + req.body.app + "] " + chalk.cyanBright(req.body.name));
     };
     res.on('finish', log);
     res.on('close', log);
