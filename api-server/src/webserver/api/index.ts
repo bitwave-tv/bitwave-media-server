@@ -311,13 +311,14 @@ export default app => {
 
     // Verify token
     try {
-      const authorized = await streamauth.verifyAdminToken( token );
+      const authorized = await streamauth.verifyToken( token, streamer );
       if ( !authorized ) {
-        res.status( 403 ).send( 'Authentication Failed' );
-        return;
+        apiLogger.info( `Failed to validate access for ${streamer}` );
+        return res.status( 403 ).send( 'Authentication Failed' );
       }
     } catch ( error ) {
-      res.status( 403 ).send( error );
+      apiLogger.error( error.message );
+      res.status( 500 ).send( error );
       return;
     }
 

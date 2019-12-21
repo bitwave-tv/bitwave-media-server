@@ -205,23 +205,68 @@ class StreamAuth {
   };
 
   /**
+   * Returns user profile data for a given uid
+   * @param uid
+   */
+  async getUserData ( uid: string ): Promise<FirebaseFirestore.DocumentData> {
+    const userDocument = await admin.firestore()
+      .collection( 'users' )
+      .doc( uid )
+      .get();
+    return userDocument.data();
+  }
+
+  /**
    * Verifies user token & checks if user is admin
-   * @param {string} token
+   * @param {FirebaseFirestore.DocumentData} data
    * @return {Promise<boolean>}
    */
-  async verifyAdminToken ( token: string ): Promise<boolean> {
-    // Verify token and get UID
-    const decodedToken = await admin.auth().verifyIdToken( token );
-    const uid = decodedToken.uid;
-
-    // Get user data
-    const userDoc = await admin.firestore().collection( 'users' ).doc( uid ).get();
-    const data = userDoc.data();
-
+  verifyAdmin ( data: FirebaseFirestore.DocumentData ): boolean {
     // Check if user has admin role
     return data.hasOwnProperty( 'role' )
       ? data.role === 'admin'
       : false;
+  }
+
+  /**
+   * Verifies user token matches username
+   * @param {FirebaseFirestore.DocumentData} data
+   * @param {string} username
+   * @return {Promise<boolean>}
+   */
+  verifyUser ( data: FirebaseFirestore.DocumentData, username: string ): boolean {
+    // Check if username matches
+    return data.hasOwnProperty( '_username' )
+      ? data._username === username.toLowerCase()
+      : false;
+  }
+
+  /**
+   * Checks token and verifies user matches username or that they are an admin
+   * @param {string} token
+   * @param {string} username
+   */
+  async verifyToken ( token: string, username: string ): Promise<boolean> {
+    // Require token
+    if ( !token ) return false;
+
+    // Verify token and get UID
+    const { uid } = await admin.auth().verifyIdToken( token );
+
+    // Get user data
+    const data = await this.getUserData( uid );
+
+    // Check if username matches token
+    const userAuth = this.verifyUser( data, username );
+    if ( userAuth ) return true;
+
+    // Check if user is an admin
+    const adminAuth = this.verifyAdmin( data );
+    if ( adminAuth ) return true;
+
+    // User was not verified, and is not an admin
+    console.log( 'Token verification failed' );
+    return false;
   }
 }
 
