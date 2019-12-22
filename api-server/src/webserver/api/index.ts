@@ -2,9 +2,9 @@
 
 'use strict';
 
-import Timeout = NodeJS.Timeout;
 import * as chalk from 'chalk';
 import * as rp from 'request-promise';
+import Timeout = NodeJS.Timeout;
 
 import logger from '../../classes/Logger';
 const apiLogger = logger( 'APIv1' );
@@ -15,12 +15,10 @@ const streamauth = streamAuth({
   cdnServer  : process.env['BMS_CDN']    || 'cdn.stream.bitrave.tv',
 });
 
-import { Transcoder } from '../../classes/Transcoder';
-const transcode = new Transcoder();
-
-import { hlsRelay } from '../../classes/Relay';
-
 import { serverData } from '../../classes/ServerData';
+import { hlsRelay }   from '../../classes/Relay';
+import { transcoder } from '../../classes/Transcoder';
+import { restreamer } from '../../classes/Restream';
 
 const port    = '5000';
 const server  = 'nginx-server';
@@ -49,20 +47,15 @@ export default app => {
     const name = req.body.name;
     const key  = req.body.key;
 
-    if ( !app ) {
-      res.sendStatus( 404 );
-      return;
-    }
+    if ( !app ) return res.sendStatus( 404 );
 
-    if ( app !== 'live' ) {
-      res.status( 200 ).send( `${[app]} Auth not required` );
-      return;
-    }
+    // Check if we need to check streamkey
+    if ( app !== 'live' ) return res.status( 200 ).send( `${[app]} Auth not required` );
 
-    if ( !name || !key ) {
-      res.sendStatus( 500 );
-      return;
-    }
+
+    // The following code only runs on the live endpoint
+    // and requires both a name & key to authorize publish
+    if ( !name || !key ) return res.sendStatus( 500 );
 
     // Verify stream key
     const checkKey: boolean = await streamauth.checkStreamKey ( name, key );
@@ -71,11 +64,15 @@ export default app => {
       // We are authorized
 
       // Relay stream to HLS endpoint
-      hlsRelay.startRelay( name );
+      const relaySuccessful: boolean = hlsRelay.startRelay( name );
+
+      // Verify we were able to start the HLS ffmpeg process
+      if ( !relaySuccessful ) return res.status( 500 ).send( `[${name}] Failed to start HLS ffmpeg process` );
 
       // If authorized, pre-fetch archive status
       const checkArchive: boolean = await streamauth.checkArchive( name );
 
+      // Wait for a few seconds before updating state and starting archive
       const timer: Timeout = setTimeout( async () => {
 
         // Update live status
@@ -112,10 +109,12 @@ export default app => {
       apiLogger.info( `[${app}] ${chalk.cyanBright.bold(name)} authorized.` );
 
       res.status( 200 ).send( `${name} authorized.` );
+
     } else {
       apiLogger.info( `[${app}] ${chalk.redBright.bold(name)} denied.` );
 
       res.status( 403 ).send( `${name} denied.` );
+
     }
   });
 
@@ -134,7 +133,7 @@ export default app => {
       }, updateDelay * 1000 );
     }
 
-    res.status( 200 ).send( `[${app}|${name}] is transcoding ${user}.` );
+    res.send( `[${app}|${name}] is transcoding ${user}.` );
   });
 
   /**
@@ -159,7 +158,7 @@ export default app => {
       await streamauth.setLiveStatus( name, false );
       apiLogger.info( `[${app}] ${chalk.cyanBright.bold(name)} is going ${chalk.redBright.bold('OFFLINE')}.` );
 
-      res.status( 200 ).send( `[${app}] ${name} is now OFFLINE` );
+      res.send( `[${app}] ${name} is now OFFLINE` );
     }
   });
 
@@ -174,10 +173,20 @@ export default app => {
   app.post( '/stream/transcode/start', async ( req, res ) => {
     const user = req.body.user;
 
-    apiLogger.info( `${chalk.cyanBright.bold(user)} will be transcoded... Starting transcoders...` );
-    transcode.startTranscoder( user );
+    // Attempt to get case sensitive username
+    const streamer = serverData.getStreamer( user );
 
-    res.status( 200 ).send( `${user} is now being transcoded.` );
+    // Failed to find user on server
+    if ( !streamer ) {
+      apiLogger.info( `${chalk.redBright( user )} failed to transcode... ( not found )` );
+      return res.send( `Could not find ${user} in the livestream list.` );
+    }
+
+    // User found - Start transcoding
+    apiLogger.info( `${chalk.cyanBright.bold( streamer )} will be transcoded... Starting transcoders...` );
+    transcoder.startTranscoder( streamer );
+
+    res.send( `${streamer} is now being transcoded.` );
   });
 
   /**
@@ -186,52 +195,144 @@ export default app => {
   app.post( '/stream/transcode/stop', async ( req, res ) => {
     const user = req.body.user;
 
-    apiLogger.info( `${chalk.cyanBright.bold(user)} will no longer be transcoded.` );
+    // Attempt to get case sensitive username
+    const streamer = serverData.getStreamer( user );
+
+    // Failed to find user on server
+    if ( !streamer ) {
+      apiLogger.info( `${chalk.redBright( user)} failed to transcode... ( not found )` );
+      return res.status( 200 ).send( `Could not find ${user} in the livestream list.` );
+    }
+
+    // User found - Stop transcoding
+    apiLogger.info( `${chalk.cyanBright.bold(streamer)} will no longer be transcoded.` );
 
     // Revert streamer endpoint
-    await streamauth.setTranscodeStatus( user, false );
-    apiLogger.info( `${chalk.cyanBright.bold(user)}'s endpoint has been reverted` );
+    await streamauth.setTranscodeStatus( streamer, false );
+    apiLogger.info( `${chalk.cyanBright.bold( streamer )}'s endpoint has been reverted` );
 
-    transcode.stopTranscoder( user );
-    apiLogger.info( `${chalk.cyanBright.bold(user)}'s transcoding process has been stopped.` );
+    // Stop transcode ffmpeg process
+    transcoder.stopTranscoder( streamer );
+    apiLogger.info( `${chalk.cyanBright.bold( streamer )}'s transcoding process has been stopped.` );
 
-    res.status( 200 ).send(`${user} is no longer being transcoded.`);
+    res.status( 200 ).send(`${ streamer } is no longer being transcoded.`);
   });
+
+  //-------------------------------
 
   /**
    * Start stream recorder
    */
   app.post( '/stream/record/start', async ( req, res ) => {
-    const name = req.body.name;
+    const user = req.body.name;
 
-    const response = await rp( `${host}/${control}/record/start?app=live&name=${name}&rec=archive` );
+    // Attempt to get case sensitive username
+    const streamer = serverData.getStreamer( user );
 
+    // Failed to find user on server
+    if ( !streamer ) {
+      apiLogger.info( `${chalk.redBright( user)} failed to transcode... ( not found )` );
+      return res.status( 200 ).send( `Could not find ${user} in the livestream list.` );
+    }
+
+    // Start archiving process
+    const response = await rp( `${host}/${control}/record/start?app=live&name=${streamer}&rec=archive` );
+
+    // Send response
     if ( !response ) {
       apiLogger.info(`${chalk.redBright('Failed to start archive')}, please try again.`);
     } else {
-      apiLogger.info(`Archiving ${chalk.cyanBright.bold(name)} to ${chalk.greenBright(response)}`);
-      await streamauth.saveArchive( name, response );
+      apiLogger.info(`Archiving ${chalk.cyanBright.bold(streamer)} to ${chalk.greenBright(response)}`);
+      await streamauth.saveArchive( streamer, response );
     }
 
-    res.status( 200 ).send( !!response ? response : `${name} failed to start archive` );
+    res.status( 200 ).send( !!response ? response : `${streamer} failed to start archive` );
   });
 
   /**
    * Stop stream recorder
    */
   app.post( '/stream/record/stop', async ( req, res ) => {
-    const name = req.body.name;
+    const user = req.body.name;
 
-    const response = await rp( `${host}/${control}/record/stop?app=live&name=${name}&rec=archive` );
+    // Attempt to get case sensitive username
+    const streamer = serverData.getStreamer( user );
 
+    // Failed to find user on server
+    if ( !streamer ) {
+      apiLogger.info( `${chalk.redBright( user)} failed to transcode... ( not found )` );
+      return res.status( 200 ).send( `Could not find ${user} in the livestream list.` );
+    }
+
+    // Stop archiving process
+    const response = await rp( `${host}/${control}/record/stop?app=live&name=${streamer}&rec=archive` );
+
+    // Send response
     if ( !response ) {
       apiLogger.info(`${chalk.redBright('Failed to stop archive')}, please try again.` );
     } else {
-      apiLogger.info(`Archive of ${chalk.cyanBright.bold(name)} saved to ${chalk.greenBright(response)}`);
+      apiLogger.info(`Archive of ${chalk.cyanBright.bold(streamer)} saved to ${chalk.greenBright(response)}`);
     }
 
-    res.status( 200 ).send( !!response ? response : `${name} failed to stop archive` );
+    res.status( 200 ).send( !!response ? response : `${streamer} failed to stop archive` );
   });
+
+  //-------------------------------
+
+  /**
+   * Start restreaming process
+   */
+  app.post( '/api/restream/start', async ( req, res ) => {
+    const user = req.body.user;
+    const remoteServer = req.body.server;
+    const remoteKey    = req.body.key;
+
+    // Attempt to get case sensitive username
+    const streamer = serverData.getStreamer( user );
+
+    // Failed to find user on server
+    if ( !streamer ) {
+      apiLogger.info( `${chalk.redBright( user)} failed to restream... ( not found )` );
+      return res.send( `Could not find ${user} in the livestream list.` );
+    }
+
+    // User found - Verify server & key
+    if ( !remoteServer || !remoteKey ) {
+      apiLogger.info( `${chalk.redBright( user)} missing restream server or key... ( not found )` );
+      return res.send( `Could not find target restream server and / or key for ${user}.` );
+    }
+
+    // Start restreaming process
+    apiLogger.info( `${chalk.cyanBright.bold( streamer )} will be restreamed... Starting restreamer...` );
+    restreamer.startRestream( streamer, remoteServer, remoteKey );
+
+    res.send( `${streamer} is now being restreamed` );
+  });
+
+  /**
+   * Stop restreaming process
+   */
+  app.post( '/api/restream/start', async ( req, res ) => {
+    const user = req.body.user;
+
+    // Attempt to get case sensitive username
+    const streamer = serverData.getStreamer( user );
+
+    // Failed to find user on server
+    if ( !streamer ) {
+      apiLogger.info( `${chalk.redBright( user)} failed to restream... ( not found )` );
+      return res.status( 200 ).send( `Could not find ${user} in the livestream list.` );
+    }
+
+    // Stop restreaming process
+    apiLogger.info( `${chalk.cyanBright.bold( streamer )}'s restreaming process has been stopped.` );
+    restreamer.stopRestream( streamer );
+
+    res.send( `${streamer} is no longer being restreamed` );
+  });
+
+  //-------------------------------
+
 
 
   /*********************************
@@ -242,7 +343,7 @@ export default app => {
    * Transcoded stream stats
    */
   app.get( '/stream/stats', async ( req, res ) => {
-    const data = transcode.transcoders.map( t => ({
+    const data = transcoder.transcoders.map( t => ({
       user: t.user,
       ffmpegProc: t.process.ffmpegProc,
       ffprobeData: t.process._ffprobeData,
@@ -256,15 +357,14 @@ export default app => {
    * Transcoded stream stats for single user
    */
   app.get( '/stream/stats/:user', async ( req, res ) => {
-    const data = transcode.transcoders
+    const data = transcoder.transcoders
       .filter( stats => stats.user.toLowerCase() === req.params.user.toLowerCase() )
       .map( stats => ({user: stats.user, ffmpegProc: stats.process.ffmpegProc, data: stats.data }) );
 
-    res.status( 200 )
-      .send( transcode.transcoders.filter( stats => {
-        if ( stats.user.toLowerCase() === req.params.user.toLowerCase() ) {
+    res.send(
+      transcoder.transcoders.filter( stats => {
+        if ( stats.user.toLowerCase() === req.params.user.toLowerCase() )
           return { user: stats.user, data: stats.data }
-        }
       }));
   });
 
@@ -275,7 +375,7 @@ export default app => {
 
   app.get( '/server/data', async ( req, res ) => {
     const data = serverData.getStreamerList();
-    res.status( 200 ).send( data );
+    res.send( data );
   });
 
   app.get( '/server/data/:streamer', async ( req, res ) => {
@@ -283,16 +383,13 @@ export default app => {
     const data = serverData.getStreamerData( streamer );
 
     // Verify we got data
-    if ( !data ) {
-      res.status( 404 ).send( 'Error: streamer not found' );
-      return;
-    }
+    if ( !data ) return res.status( 404 ).send( 'Error: streamer not found' );
 
     // Update streamer's data
     serverData.updateStreamer( streamer );
 
     // Send results
-    res.status( 200 ).send( data );
+    res.send( data );
   });
 
 
@@ -304,10 +401,7 @@ export default app => {
     const streamer = req.body.streamer;
     const token    = req.body.token;
 
-    if ( !streamer || !token ) {
-      res.status( 422 ).send( 'Missing required parameters' );
-      return;
-    }
+    if ( !streamer || !token ) return res.status( 422 ).send( 'Missing required parameters' );
 
     // Verify token
     try {
@@ -318,18 +412,14 @@ export default app => {
       }
     } catch ( error ) {
       apiLogger.error( error.message );
-      res.status( 500 ).send( error );
-      return;
+      return res.status( 500 ).send( error );
     }
 
     // Get exact streamer endpoint
     const name = serverData.getStreamer( streamer );
 
     // Check if streamer was found
-    if ( !name ) {
-      res.status( 404 ).send( 'Streamer not found' );
-      return;
-    }
+    if ( !name ) return res.status( 404 ).send( 'Streamer not found' );
 
     // Construct command
     const mode = 'drop';
@@ -341,7 +431,7 @@ export default app => {
     apiLogger.info( `Drop ${name} result: ${response}` );
 
     // Return result
-    res.status( 200 ).send( response );
+    await res.send( response );
   });
 
 };

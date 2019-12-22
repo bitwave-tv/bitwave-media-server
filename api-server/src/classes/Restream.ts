@@ -2,10 +2,11 @@ import * as FfmpegCommand from 'fluent-ffmpeg';
 import * as chalk from 'chalk';
 
 import logger from '../classes/Logger';
-const relayLogger = logger( 'RELAY' );
+const restreamLogger = logger( 'RSTRM' );
 
-interface IStreamRelay {
+interface IRestreamRelay {
   user: string;
+  remoteService: string;
   process: any;
   data: IProgressData;
 }
@@ -17,25 +18,25 @@ interface IProgressData {
   time: number
 }
 
-class StreamRelay {
-  public transcoders: IStreamRelay[];
+class Restreamer {
+  public restreams: IRestreamRelay[];
 
   constructor () {
-    this.transcoders = [];
+    this.restreams = [];
   }
 
-  startRelay ( user: string ): boolean {
-    // Check for existing HLS relay
-    const transcoder = this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() );
-    if ( transcoder && transcoder.process !== null ) {
-      relayLogger.error( chalk.redBright( `${user} is already being streamed.` ) );
+  startRestream ( user: string, restreamServeer: string, restreamKey: string ): boolean {
+    // Check for existing restreamer
+    const restreamer = this.restreams.find(t => t.user.toLowerCase() === user.toLowerCase() );
+    if ( restreamer && restreamer.process !== null ) {
+      restreamLogger.error( chalk.redBright( `${user} is already being streamed.` ) );
       return false;
     }
 
-    relayLogger.info( chalk.greenBright( `Start HLS stream for ${user}` ) );
+    restreamLogger.info( chalk.greenBright( `Start restream for ${user}` ) );
 
     const inputStream  = `rtmp://nginx-server/live/${user}`;
-    const outputStream = `rtmp://nginx-server/hls/${user}`;
+    const outputStream = `${restreamServeer}/${restreamKey}`;
 
     const ffmpeg = FfmpegCommand( inputStream, { stdoutLines: 1 } );
     // const ffmpeg = FfmpegCommand();
@@ -70,10 +71,11 @@ class StreamRelay {
 
     ffmpeg
       .on( 'start', commandLine => {
-        relayLogger.info( chalk.yellowBright( `Starting stream relay.` ) );
+        restreamLogger.info( chalk.yellowBright( `Starting restreamer.` ) );
         console.log( commandLine );
-        this.transcoders.push({
+        this.restreams.push({
           user: user,
+          remoteService: restreamServeer,
           process: ffmpeg,
           data: {
             frames: 0,
@@ -85,22 +87,22 @@ class StreamRelay {
       })
 
       .on( 'end', () => {
-        relayLogger.info( chalk.redBright( `Livestream ended.` ) );
-        this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() ).process = null;
+        restreamLogger.info( chalk.redBright( `Restream ended.` ) );
+        this.restreams.find(t => t.user.toLowerCase() === user.toLowerCase() ).process = null;
         // retry
       })
 
       .on( 'error', ( error, stdout, stderr ) => {
-        relayLogger.error( `Stream relay error!` );
+        restreamLogger.error( `Restreaming error!` );
         console.log( error );
         console.log( stdout );
         console.log( stderr );
-        this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() ).process = null;
+        this.restreams.find(t => t.user.toLowerCase() === user.toLowerCase() ).process = null;
         // retry
       })
 
       .on( 'progress', progress => {
-        this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() ).data = {
+        this.restreams.find(t => t.user.toLowerCase() === user.toLowerCase() ).data = {
           frames: progress.frames,
           fps: progress.currentFps,
           bitRate: progress.currentKbps,
@@ -114,18 +116,18 @@ class StreamRelay {
     return true;
   }
 
-  stopRelay ( user: string ): boolean {
-    const transcoder = this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() );
+  stopRestream ( user: string ) {
+    const transcoder = this.restreams.find(t => t.user.toLowerCase() === user.toLowerCase() );
     if ( transcoder.process !== null ) {
       transcoder.process.kill( 'SIGKILL' );
-      relayLogger.info( `Stopping HLS stream!` );
+      restreamLogger.info( `Stopping restreamer!` );
       return true;
     } else {
-      relayLogger.error( `HLS Streaming process not running for ${user}.` );
+      restreamLogger.error( `Restreamer process not running for ${user}.` );
       return false;
     }
   }
 
 }
 
-export const hlsRelay = new StreamRelay();
+export const restreamer = new Restreamer();

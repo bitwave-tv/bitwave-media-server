@@ -182,4 +182,4 @@ class Transcoder {
 
 }
 
-export { Transcoder };
+export const transcoder = new Transcoder();
