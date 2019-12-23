@@ -1,12 +1,62 @@
 import * as admin from 'firebase-admin';
-const { body } = require('express-validator');
+import { check, validationResult  } from 'express-validator';
+import { Request } from 'express';
+
+type reqWithToken = Request & { token: string };
+
+export const extractToken = ( req, res, next ) => {
+  const getToken = ( req: Request ) => {
+    console.log( 'extracting auth token' );
+    if ( req.headers.authorization && req.headers.authorization.split(' ')[0] === 'Bearer' )
+      return req.headers.authorization.split(' ')[1];
+    else if ( req.query && req.query.token )
+      return req.query.token;
+    return null;
+  };
+  const token = getToken( req );
+  ( req as reqWithToken ).token = token;
+  req.body.token = token;
+  next();
+};
 
 export const validateUserToken = () => {
+  console.log( 'validate body' );
+
   return [
-    body('user').isString(),
-    body('token').isJWT,
+    check('user').isString(),
+    check('token').isJWT(),
   ]
 };
+
+export const validate = ( req, res, next ) => {
+  console.log( 'validate' );
+
+  const errors = validationResult( req );
+
+  if ( errors.isEmpty() ) return next();
+
+  console.log( 'error validating' );
+
+  const extractedErrors = [];
+  errors
+    .array()
+      .map( err =>
+        extractedErrors.push(
+          {
+            [err.param]: err.msg,
+            type: typeof  err.value,
+            valu: err.value,
+          }
+        )
+      );
+
+  return res
+    .status(422)
+    .json({
+      errors: extractedErrors,
+    });
+};
+
 
 /**
  * Returns user profile data for a given uid
@@ -73,10 +123,16 @@ const verifyToken = async ( token: string, username: string ): Promise<boolean> 
 };
 
 export const authenticatedRequest = async ( req, res, next ) => {
+  console.log( 'authenticating' );
+
   const token = req.body.token;
-  const user = req.body.user;
+  const user  = req.body.user;
+
   const authenticated = await verifyToken(token, user);
-  if (authenticated) return next();
+  if ( authenticated ) {
+    return next();
+  }
+
   return res
     .status(403)
     .send({

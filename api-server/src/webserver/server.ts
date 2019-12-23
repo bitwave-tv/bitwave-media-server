@@ -23,7 +23,7 @@ import * as Q from 'q';
 import logger from '../classes/Logger';
 const nodeLogger = logger ( 'EXPRS' );
 
-import apiRouter from './api';
+import api from './api';
 // const apiV1 = require('./controllers/api/v1');
 
 // middleware
@@ -83,8 +83,9 @@ class BitwaveMediaServer {
    * add routes
    */
   addRoutes () {
-    apiRouter( this.app );
+    // router( this.app );
     // this.app.use('/v1', apiV1);
+    this.app.use( '/', api );
   }
 
   /**
