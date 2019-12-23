@@ -20,7 +20,7 @@ class EnvVar {
   }
 
   log ( message, level ) {
-    this.messages.push({ level: level, message: message });
+    this.messages.push( { level: level, message: message } );
   }
 
   init ( config ) {

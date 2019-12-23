@@ -19,6 +19,9 @@ import { serverData } from '../../classes/ServerData';
 import { hlsRelay }   from '../../classes/Relay';
 import { transcoder } from '../../classes/Transcoder';
 import { restreamer } from '../../classes/Restream';
+import { authenticatedRequest, validateUserToken } from '../middleware/auth';
+import {body} from 'express-validator';
+import {URLProtocol} from 'express-validator/src/options';
 
 const port    = '5000';
 const server  = 'nginx-server';
@@ -47,15 +50,24 @@ export default app => {
     const name = req.body.name;
     const key  = req.body.key;
 
-    if ( !app ) return res.sendStatus( 404 );
+    if ( !app ) return res.status( 404 ).send( `Invalid route for authorization` );
 
     // Check if we need to check streamkey
     if ( app !== 'live' ) return res.status( 200 ).send( `${[app]} Auth not required` );
 
+    // block new connections if user is already connected
+    const streamer = serverData.getStreamer( name );
+    if ( streamer ) {
+      apiLogger.error( 'Streamer is already connected! denying new connection' );
+      return res.status( 500 ).send( `[${name}] Failed to start HLS ffmpeg process` );
+    }
 
     // The following code only runs on the live endpoint
     // and requires both a name & key to authorize publish
-    if ( !name || !key ) return res.sendStatus( 500 );
+    if ( !name || !key ) {
+      apiLogger.error( `Stream authorization missing name or key` );
+      return res.status( 422 ).send(`Authorization needs bother name and key`);
+    }
 
     // Verify stream key
     const checkKey: boolean = await streamauth.checkStreamKey ( name, key );
@@ -67,7 +79,10 @@ export default app => {
       const relaySuccessful: boolean = hlsRelay.startRelay( name );
 
       // Verify we were able to start the HLS ffmpeg process
-      if ( !relaySuccessful ) return res.status( 500 ).send( `[${name}] Failed to start HLS ffmpeg process` );
+      if ( !relaySuccessful ) {
+        apiLogger.error( `Failed to start HLS relay` );
+        return res.status( 500 ).send( `[${name}] Failed to start HLS ffmpeg process` );
+      }
 
       // If authorized, pre-fetch archive status
       const checkArchive: boolean = await streamauth.checkArchive( name );
@@ -106,15 +121,9 @@ export default app => {
         timer: timer,
       });
 
-      apiLogger.info( `[${app}] ${chalk.cyanBright.bold(name)} authorized.` );
-
       res.status( 200 ).send( `${name} authorized.` );
-
     } else {
-      apiLogger.info( `[${app}] ${chalk.redBright.bold(name)} denied.` );
-
       res.status( 403 ).send( `${name} denied.` );
-
     }
   });
 
@@ -132,8 +141,7 @@ export default app => {
         apiLogger.info(`[${app}] ${chalk.cyanBright.bold(user)} is now ${chalk.greenBright.bold('transcoded')}.`);
       }, updateDelay * 1000 );
     }
-
-    res.send( `[${app}|${name}] is transcoding ${user}.` );
+    res.send( `[${name}] is transcoding ${user}.` );
   });
 
   /**
@@ -143,10 +151,10 @@ export default app => {
     const app  = req.body.app;
     const name = req.body.name;
 
-    // Streamer has fully disconnected
+    // Streamer has  fully disconnected
     if ( app === 'live' ) {
 
-      // Prevent live from firing if we go offline
+      // Prevent live timers from firing if we go offline
       liveTimers.map( val => {
         if ( val.user === name )
           clearTimeout( val.timer );
@@ -156,21 +164,34 @@ export default app => {
 
       // Set offline status
       await streamauth.setLiveStatus( name, false );
-      apiLogger.info( `[${app}] ${chalk.cyanBright.bold(name)} is going ${chalk.redBright.bold('OFFLINE')}.` );
 
       res.send( `[${app}] ${name} is now OFFLINE` );
     }
   });
 
 
+
   /*********************************
    * Commands & Controls
    */
 
+
+// Add Authenticating middleware
+  app.user (
+    [
+      '/transcoder',
+      '/recorder',
+      'restreamer',
+      '/admin',
+    ],
+    validateUserToken,
+    authenticatedRequest,
+  );
+
   /**
    * Start transcoding stream
    */
-  app.post( '/stream/transcode/start', async ( req, res ) => {
+  app.post( '/transcoder/start', async ( req, res ) => {
     const user = req.body.user;
 
     // Attempt to get case sensitive username
@@ -192,7 +213,9 @@ export default app => {
   /**
    * Stop transcoding stream
    */
-  app.post( '/stream/transcode/stop', async ( req, res ) => {
+  app.post(
+    '/transcoder/stop',
+    async ( req, res ) => {
     const user = req.body.user;
 
     // Attempt to get case sensitive username
@@ -216,15 +239,18 @@ export default app => {
     apiLogger.info( `${chalk.cyanBright.bold( streamer )}'s transcoding process has been stopped.` );
 
     res.status( 200 ).send(`${ streamer } is no longer being transcoded.`);
-  });
+  }
+  );
 
   //-------------------------------
 
   /**
    * Start stream recorder
    */
-  app.post( '/stream/record/start', async ( req, res ) => {
-    const user = req.body.name;
+  app.post(
+    '/recorder/start',
+    async ( req, res ) => {
+    const user = req.body.user;
 
     // Attempt to get case sensitive username
     const streamer = serverData.getStreamer( user );
@@ -247,13 +273,16 @@ export default app => {
     }
 
     res.status( 200 ).send( !!response ? response : `${streamer} failed to start archive` );
-  });
+  }
+  );
 
   /**
    * Stop stream recorder
    */
-  app.post( '/stream/record/stop', async ( req, res ) => {
-    const user = req.body.name;
+  app.post(
+    '/recorder/stop',
+    async ( req, res ) => {
+    const user = req.body.user;
 
     // Attempt to get case sensitive username
     const streamer = serverData.getStreamer( user );
@@ -275,17 +304,24 @@ export default app => {
     }
 
     res.status( 200 ).send( !!response ? response : `${streamer} failed to stop archive` );
-  });
+  }
+  );
 
   //-------------------------------
 
   /**
    * Start restreaming process
    */
-  app.post( '/api/restream/start', async ( req, res ) => {
-    const user = req.body.user;
-    const remoteServer = req.body.server;
-    const remoteKey    = req.body.key;
+  app.post(
+    '/restreamer/start',
+    [
+      body('server').isURL({protocols: [ 'rtmp' as URLProtocol ]}),
+      body('key').isString(),
+    ],
+    async ( req, res ) => {
+    const user   = req.body.user;
+    const server = req.body.server;
+    const key    = req.body.key;
 
     // Attempt to get case sensitive username
     const streamer = serverData.getStreamer( user );
@@ -297,22 +333,25 @@ export default app => {
     }
 
     // User found - Verify server & key
-    if ( !remoteServer || !remoteKey ) {
+    if ( !server || !key ) {
       apiLogger.info( `${chalk.redBright( user)} missing restream server or key... ( not found )` );
       return res.send( `Could not find target restream server and / or key for ${user}.` );
     }
 
     // Start restreaming process
-    apiLogger.info( `${chalk.cyanBright.bold( streamer )} will be restreamed... Starting restreamer...` );
-    restreamer.startRestream( streamer, remoteServer, remoteKey );
+    apiLogger.info( `${chalk.cyanBright.bold( streamer )} Starting restreamer...` );
+    restreamer.startRestream( streamer, server, key );
 
     res.send( `${streamer} is now being restreamed` );
-  });
+  }
+  );
 
   /**
    * Stop restreaming process
    */
-  app.post( '/api/restream/start', async ( req, res ) => {
+  app.post(
+    '/restreamer/stop',
+    async ( req, res ) => {
     const user = req.body.user;
 
     // Attempt to get case sensitive username
@@ -329,7 +368,8 @@ export default app => {
     restreamer.stopRestream( streamer );
 
     res.send( `${streamer} is no longer being restreamed` );
-  });
+  }
+  );
 
   //-------------------------------
 
@@ -340,9 +380,40 @@ export default app => {
    */
 
   /**
+   * HLS stream stats
+   */
+  app.get( '/streamer/stats', async ( req, res ) => {
+    const data = transcoder.transcoders.map( t => ({
+      user: t.user,
+      ffmpegProc: t.process.ffmpegProc,
+      ffprobeData: t.process._ffprobeData,
+      data: t.data
+    }));
+
+    res.status( 200 ).send( data );
+  });
+
+  /**
+   * HLS stream stats for single user
+   */
+  app.get( '/streamer/stats/:user', async ( req, res ) => {
+    const data = transcoder.transcoders
+      .filter( stats => stats.user.toLowerCase() === req.params.user.toLowerCase() )
+      .map( stats => ({user: stats.user, ffmpegProc: stats.process.ffmpegProc, data: stats.data }) );
+
+    res.send(
+      transcoder.transcoders.filter( stats => {
+        if ( stats.user.toLowerCase() === req.params.user.toLowerCase() )
+          return { user: stats.user, data: stats.data }
+      }));
+  });
+
+  //------------------------------
+
+  /**
    * Transcoded stream stats
    */
-  app.get( '/stream/stats', async ( req, res ) => {
+  app.get( '/transcoder/stats', async ( req, res ) => {
     const data = transcoder.transcoders.map( t => ({
       user: t.user,
       ffmpegProc: t.process.ffmpegProc,
@@ -356,7 +427,7 @@ export default app => {
   /**
    * Transcoded stream stats for single user
    */
-  app.get( '/stream/stats/:user', async ( req, res ) => {
+  app.get( '/transcoder/stats/:user', async ( req, res ) => {
     const data = transcoder.transcoders
       .filter( stats => stats.user.toLowerCase() === req.params.user.toLowerCase() )
       .map( stats => ({user: stats.user, ffmpegProc: stats.process.ffmpegProc, data: stats.data }) );
@@ -366,6 +437,43 @@ export default app => {
         if ( stats.user.toLowerCase() === req.params.user.toLowerCase() )
           return { user: stats.user, data: stats.data }
       }));
+  });
+
+  //------------------------------
+
+  /**
+   * Restreamer stats
+   */
+  app.get( '/restreamer/stats', async ( req, res ) => {
+    const data = restreamer.restreams.map( t => ({
+      user: t.user,
+      ffmpegProc: t.process.ffmpegProc,
+      ffprobeData: t.process._ffprobeData,
+      data: t.data
+    }));
+
+    res.status( 200 ).send( data );
+  });
+
+  /**
+   * Restreamer stats for single user
+   */
+  app.get( '/restreamer/stats/:user', async ( req, res ) => {
+    const data = restreamer.restreams
+      .filter( stats =>
+        stats.user.toLowerCase() === req.params.user.toLowerCase()
+      )
+      .map( stats =>
+        ( {user: stats.user, ffmpegProc: stats.process.ffmpegProc, data: stats.data } )
+      );
+
+    res.send(
+      restreamer.restreams
+        .filter( stats => {
+          if ( stats.user.toLowerCase() === req.params.user.toLowerCase() )
+            return { user: stats.user, data: stats.data }
+          })
+    );
   });
 
 
@@ -399,7 +507,7 @@ export default app => {
 
   app.post( '/admin/drop', async ( req, res ) => {
     const streamer = req.body.streamer;
-    const token    = req.body.token;
+    const token    = req.body.token || req.query.token;
 
     if ( !streamer || !token ) return res.status( 422 ).send( 'Missing required parameters' );
 
@@ -416,16 +524,18 @@ export default app => {
     }
 
     // Get exact streamer endpoint
-    const name = serverData.getStreamer( streamer );
+    let name = serverData.getStreamer( streamer );
 
     // Check if streamer was found
-    if ( !name ) return res.status( 404 ).send( 'Streamer not found' );
+    if ( !name ) {
+      console.log( `${streamer} is not live, will attempt to force anyways.` );
+    }
 
     // Construct command
     const mode = 'drop';
     const type = 'publisher';
     const app  = 'live';
-    const response = await rp( `${host}/${control}/${mode}/${type}?app=${app}&name=${name}` );
+    const response = await rp( `${host}/${control}/${mode}/${type}?app=${app}&name=${name || streamer}` );
 
     // Log results
     apiLogger.info( `Drop ${name} result: ${response}` );

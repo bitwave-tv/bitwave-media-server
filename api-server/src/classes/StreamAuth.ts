@@ -138,7 +138,10 @@ class StreamAuth {
    * @return {Promise<void>}
    */
   async setTranscodeStatus ( username: string, transcoded: boolean ): Promise<void> {
-    const streamRef = admin.firestore().collection( 'streams' ).doc( username.toLowerCase() );
+    const streamRef = admin.firestore()
+      .collection( 'streams' )
+      .doc( username.toLowerCase() );
+
     const doc = await streamRef.get();
 
     if ( !doc.exists ) {
