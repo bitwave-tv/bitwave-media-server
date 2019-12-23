@@ -64,8 +64,9 @@ var BitwaveMediaServer = /** @class */ (function () {
      * add routes
      */
     BitwaveMediaServer.prototype.addRoutes = function () {
-        api_1.default(this.app);
+        // router( this.app );
         // this.app.use('/v1', apiV1);
+        this.app.use('/', api_1.default);
     };
     /**
      * add 404 error handling on pages, that have not been found

@@ -192,7 +192,9 @@ var StreamAuth = /** @class */ (function () {
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0:
-                        streamRef = admin.firestore().collection('streams').doc(username.toLowerCase());
+                        streamRef = admin.firestore()
+                            .collection('streams')
+                            .doc(username.toLowerCase());
                         return [4 /*yield*/, streamRef.get()];
                     case 1:
                         doc = _a.sent();
@@ -285,27 +287,77 @@ var StreamAuth = /** @class */ (function () {
     };
     ;
     /**
-     * Verifies user token & checks if user is admin
-     * @param {string} token
-     * @return {Promise<boolean>}
+     * Returns user profile data for a given uid
+     * @param uid
      */
-    StreamAuth.prototype.verifyAdminToken = function (token) {
+    StreamAuth.prototype.getUserData = function (uid) {
         return __awaiter(this, void 0, void 0, function () {
-            var decodedToken, uid, userDoc, data;
+            var userDocument;
             return __generator(this, function (_a) {
                 switch (_a.label) {
-                    case 0: return [4 /*yield*/, admin.auth().verifyIdToken(token)];
+                    case 0: return [4 /*yield*/, admin.firestore()
+                            .collection('users')
+                            .doc(uid)
+                            .get()];
                     case 1:
-                        decodedToken = _a.sent();
-                        uid = decodedToken.uid;
-                        return [4 /*yield*/, admin.firestore().collection('users').doc(uid).get()];
+                        userDocument = _a.sent();
+                        return [2 /*return*/, userDocument.data()];
+                }
+            });
+        });
+    };
+    /**
+     * Verifies user token & checks if user is admin
+     * @param {FirebaseFirestore.DocumentData} data
+     * @return {Promise<boolean>}
+     */
+    StreamAuth.prototype.verifyAdmin = function (data) {
+        // Check if user has admin role
+        return data.hasOwnProperty('role')
+            ? data.role === 'admin'
+            : false;
+    };
+    /**
+     * Verifies user token matches username
+     * @param {FirebaseFirestore.DocumentData} data
+     * @param {string} username
+     * @return {Promise<boolean>}
+     */
+    StreamAuth.prototype.verifyUser = function (data, username) {
+        // Check if username matches
+        return data.hasOwnProperty('_username')
+            ? data._username === username.toLowerCase()
+            : false;
+    };
+    /**
+     * Checks token and verifies user matches username or that they are an admin
+     * @param {string} token
+     * @param {string} username
+     */
+    StreamAuth.prototype.verifyToken = function (token, username) {
+        return __awaiter(this, void 0, void 0, function () {
+            var uid, data, userAuth, adminAuth;
+            return __generator(this, function (_a) {
+                switch (_a.label) {
+                    case 0:
+                        // Require token
+                        if (!token)
+                            return [2 /*return*/, false];
+                        return [4 /*yield*/, admin.auth().verifyIdToken(token)];
+                    case 1:
+                        uid = (_a.sent()).uid;
+                        return [4 /*yield*/, this.getUserData(uid)];
                     case 2:
-                        userDoc = _a.sent();
-                        data = userDoc.data();
-                        // Check if user has admin role
-                        return [2 /*return*/, data.hasOwnProperty('role')
-                                ? data.role === 'admin'
-                                : false];
+                        data = _a.sent();
+                        userAuth = this.verifyUser(data, username);
+                        if (userAuth)
+                            return [2 /*return*/, true];
+                        adminAuth = this.verifyAdmin(data);
+                        if (adminAuth)
+                            return [2 /*return*/, true];
+                        // User was not verified, and is not an admin
+                        console.log('Token verification failed');
+                        return [2 /*return*/, false];
                 }
             });
         });

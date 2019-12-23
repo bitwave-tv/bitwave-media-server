@@ -144,5 +144,5 @@ var Transcoder = /** @class */ (function () {
     };
     return Transcoder;
 }());
-exports.Transcoder = Transcoder;
+exports.transcoder = new Transcoder();
 //# sourceMappingURL=Transcoder.js.map

@@ -538,45 +538,38 @@ type reqWithToken = Request & { token: string };
 router.post(
   '/admin/drop',
 
+  // Backwards compatibility
+  ( req, res, next ) => {
+    req.body.user = req.body.user || req.body.streamer;
+    next();
+  },
+
   extractToken,
+  validateUserToken(),
+  validate,
+  authenticatedRequest,
 
-  async ( req: reqWithToken, res ) => {
-  const streamer = req.body.streamer;
-  const token    = req.token;
+  async ( req, res ) => {
+    // Get data from body with backwards compatibility
+    const user = req.body.user;
+    const token    = req.body.token;
 
-  if ( !streamer || !token ) return res.status( 422 ).send( 'Missing required parameters' );
+    // Get exact streamer endpoint
+    const name = serverData.getStreamer( user );
 
-  // Verify token
-  try {
-    const authorized = await streamauth.verifyToken( token, streamer );
-    if ( !authorized ) {
-      apiLogger.info( `Failed to validate access for ${streamer}` );
-      return res.status( 403 ).send( 'Authentication Failed' );
-    }
-  } catch ( error ) {
-    apiLogger.error( error.message );
-    return res.status( 500 ).send( error );
-  }
+    // Check if streamer was found
+    if ( !name ) console.warn( `${user} is not live, will attempt to force anyways.` );
 
-  // Get exact streamer endpoint
-  let name = serverData.getStreamer( streamer );
+    // Construct command
+    const mode = 'drop', type = 'publisher', app  = 'live';
+    const response = await rp( `${host}/${control}/${mode}/${type}?app=${app}&name=${name || user}` );
 
-  // Check if streamer was found
-  if ( !name ) {
-    console.log( `${streamer} is not live, will attempt to force anyways.` );
-  }
+    // Log results
+    apiLogger.info( `Drop ${name} result: ${response}` );
 
-  // Construct command
-  const mode = 'drop';
-  const type = 'publisher';
-  const app  = 'live';
-  const response = await rp( `${host}/${control}/${mode}/${type}?app=${app}&name=${name || streamer}` );
-
-  // Log results
-  apiLogger.info( `Drop ${name} result: ${response}` );
-
-  // Return result
-  await res.send( response );
-});
+    // Return result
+    await res.send( response );
+  },
+);
 
 export default router;
