@@ -48,7 +48,7 @@ class Restreamer {
       '-stats',
     ]);
 
-    ffmpeg.output( `${outputStream}?user=${user}` );
+    ffmpeg.output( `${outputStream}` );
     ffmpeg.outputOptions([
       // Global
       '-f flv',
@@ -72,6 +72,7 @@ class Restreamer {
     ffmpeg
       .on( 'start', commandLine => {
         restreamLogger.info( chalk.yellowBright( `Starting restreamer.` ) );
+        console.log( `Restreaming to: ${outputStream}` );
         console.log( commandLine );
         this.restreams.push({
           user: user,
