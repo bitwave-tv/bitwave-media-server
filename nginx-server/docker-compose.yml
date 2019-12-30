@@ -18,9 +18,10 @@ services:
           - bms-nginx-server
           - nginx-server
 
-    # Mount Archives Directory
+    # Mount archives & API creds
     volumes:
       - /srv/archives:/archives
+      - /srv/creds:/api-server/creds
 
     environment:
       - BMS_ENV=dev
