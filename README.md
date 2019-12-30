@@ -1,17 +1,29 @@
 # Bitwave Media Server
 
-[![buddy pipeline](https://app.buddy.works/dispatchcommit/bitwave-media-server/pipelines/pipeline/222962/badge.svg?token=7ca31676b31d48f90081c7a32f778ceee54631084c4c537af857f2b82d470895 "buddy pipeline")](https://app.buddy.works/dispatchcommit/bitwave-media-server/pipelines/pipeline/222962)
-
-An NGINX-RTMP + Node.js docker container for managing ingestion.
+An RTMP ingestion server + API server packaged as docker containers for managing and controlling streams, restreams, and archives on bitwave.tv
 
 ## Commands
 
 Updating Server:
 
 ```bash
-docker pull bitwavetv/bms-api-server
-docker pull bitwavetv/bms-nginx-server
+docker pull bitwavetv/bms-api-server:latest
+docker pull bitwavetv/bms-nginx-server:latest
 docker-compose up --build -d
+```
+
+Updating Dev Server:
+
+```bash
+docker pull bitwavetv/bms-api-server:dev
+docker pull bitwavetv/bms-nginx-server:dev
+docker-compose up --build -d
+```
+
+Rebuild & View logs:
+
+```bash
+docker-compose up --build -d && docker-compose logs --tail 25 -f
 ```
 
 View Logs:
