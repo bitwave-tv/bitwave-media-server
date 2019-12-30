@@ -19,6 +19,7 @@ import { serverData } from '../../classes/ServerData';
 import { hlsRelay }   from '../../classes/Relay';
 import { transcoder } from '../../classes/Transcoder';
 import { restreamer } from '../../classes/Restream';
+import { archiver }   from '../../classes/Archiver';
 
 import {
   authenticatedRequest,
@@ -26,7 +27,6 @@ import {
   validate,
   validateUserToken
 } from '../middleware/auth';
-import {deleteArchive} from '../../classes/Archiver';
 
 const port    = '5000';
 const server  = 'nginx-server';
@@ -107,7 +107,7 @@ router.post(
         }
 
         // Start stream archive
-        const attempts = 5;
+        const attempts = 3;
         let response;
         for ( let i: number = 0; i <= attempts; i++ ) {
           response = await rp( `${host}/${control}/record/start?app=live&name=${name}&rec=archive` );
@@ -128,9 +128,13 @@ router.post(
         timer: timer,
       });
 
-      res.status( 200 ).send( `${name} authorized.` );
+      res
+        .status( 200 )
+        .send( `${name} authorized.` );
     } else {
-      res.status( 403 ).send( `${name} denied.` );
+      res
+        .status( 403 )
+        .send( `${name} denied.` );
     }
   },
 );
@@ -439,8 +443,8 @@ router.get(
   async ( req, res ) => {
     const data = hlsRelay.transcoders.map( t => ({
       user: t.user,
-      ffmpegProc: t.process.ffmpegProc,
-      ffprobeData: t.process._ffprobeData,
+      ffmpegProc: t.process?.ffmpegProc,
+      ffprobeData: t.process?._ffprobeData,
       data: t.data
     }));
 
@@ -456,7 +460,7 @@ router.get(
   async ( req, res ) => {
     const data = hlsRelay.transcoders
       .filter( stats => stats.user.toLowerCase() === req.params.user.toLowerCase() )
-      .map( stats => ({user: stats.user, ffmpegProc: stats.process.ffmpegProc, data: stats.data }) );
+      .map( stats => ({user: stats.user, ffmpegProc: stats.process?.ffmpegProc, data: stats.data }) );
 
     res.send(
       hlsRelay.transcoders
@@ -478,8 +482,8 @@ router.get(
   async (req, res ) => {
     const data = transcoder.transcoders.map( t => ({
       user: t.user,
-      ffmpegProc: t.process.ffmpegProc,
-      ffprobeData: t.process._ffprobeData,
+      ffmpegProc: t.process?.ffmpegProc,
+      ffprobeData: t.process?._ffprobeData,
       data: t.data
     }));
 
@@ -492,7 +496,7 @@ router.get(
   async (req, res ) => {
     const data = transcoder.transcoders
       .filter( stats => stats.user.toLowerCase() === req.params.user.toLowerCase() )
-      .map( stats => ({user: stats.user, ffmpegProc: stats.process.ffmpegProc, data: stats.data }) );
+      .map( stats => ({user: stats.user, ffmpegProc: stats.process?.ffmpegProc, data: stats.data }) );
 
     res.send(
       transcoder.transcoders
@@ -514,8 +518,8 @@ router.get(
   async (req, res ) => {
     const data = restreamer.restreams.map( t => ({
       user: t.user,
-      ffmpegProc: t.process.ffmpegProc,
-      ffprobeData: t.process._ffprobeData,
+      ffmpegProc: t.process?.ffmpegProc,
+      ffprobeData: t.process?._ffprobeData,
       data: t.data
     }));
 
@@ -531,7 +535,7 @@ router.get(
         stats.user.toLowerCase() === req.params.user.toLowerCase()
       )
       .map( stats =>
-        ( {user: stats.user, ffmpegProc: stats.process.ffmpegProc, data: stats.data } )
+        ( { user: stats.user, ffmpegProc: stats.process?.ffmpegProc, data: stats.data } )
       );
 
     res.send(
@@ -589,7 +593,7 @@ router.delete(
 
   async ( req, res ) => {
     const archiveId = req.params.archiveId;
-    const result = await deleteArchive( archiveId );
+    const result = await archiver.deleteArchive( archiveId );
     res.send( result );
   },
 );

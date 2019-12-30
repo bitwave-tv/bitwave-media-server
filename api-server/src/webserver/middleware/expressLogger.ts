@@ -18,9 +18,8 @@ export default ( req, res, next ) => {
     const code: number = res.statusCode;
     const url: string  = ( req.originalUrl || req.url );
 
-    webLogger.debug( `${req.method} ${code} '${url}'` ); // req.ip
-
-    if ( req.body ) webLogger.debug( `[${req.body.app}] ${chalk.cyanBright(req.body.name)}` );
+    if ( req.body.app ) webLogger.debug( `[${req.body.app}] ${chalk.cyanBright(req.body.name)} '${url}'` );
+    else webLogger.debug( `${req.method} ${code} '${url}'` ); // req.ip
   };
 
   res.on ( 'finish', log );

@@ -19,7 +19,7 @@ services:
           - bms-nginx-server
           - nginx-server
 
-    #  Mount Archives Directory  #
+    # Mount archives & API creds #
     # - MODIFY THESE LOCATIONS - #
     volumes:
       - /srv/archives:/archives
@@ -49,9 +49,10 @@ services:
           - bms-api-server
           - api-server
 
-    # -    Mount API Creds     - #
+    # Mount archives & API creds #
     # - MODIFY THESE LOCATIONS - #
     volumes:
+      - /srv/archives:/archives
       - /srv/creds:/api-server/creds
 
     environment:

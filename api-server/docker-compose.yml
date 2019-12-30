@@ -17,8 +17,9 @@ services:
           - bms-api-server
           - api-server
 
-    # Mount API creds
+    # Mount archives & API creds
     volumes:
+      - /srv/archives:/archives
       - /srv/creds:/api-server/creds
 
     environment:

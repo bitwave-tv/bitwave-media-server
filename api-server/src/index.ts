@@ -10,7 +10,7 @@ const path = require('path');
 
 // const __src = __dirname;
 // const __base = path.join(__dirname, '..');
-const __public = path.join(__dirname, 'webserver', 'public');
+const __public = path.join( __dirname, 'webserver', 'public' );
 
 import * as config from './conf/config.json';
 import { envVar } from './classes/EnvVar';

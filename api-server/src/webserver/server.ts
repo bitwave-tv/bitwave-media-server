@@ -85,7 +85,7 @@ class BitwaveMediaServer {
   addFavicon () {
     this.app.use(
       '/favicon.ico',
-      express.static( path.join ( this.__public, 'favicon.ico' ) )
+      express.static( path.join ( this.__public, 'favicon.ico' ) ),
     );
   }
 

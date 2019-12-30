@@ -42,7 +42,7 @@ class StreamRelay {
 
     ffmpeg.input( inputStream );
     ffmpeg.inputOptions([
-      '-re',
+      // '-re',
       '-err_detect ignore_err',
       '-stats',
     ]);
