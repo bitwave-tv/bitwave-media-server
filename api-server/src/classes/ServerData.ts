@@ -3,7 +3,12 @@
 import logger from './Logger';
 const log = logger('SDATA');
 
-import {ffprobe, FfprobeFormat, FfprobeStream} from 'fluent-ffmpeg';
+import {
+  ffprobe,
+  FfprobeFormat,
+  FfprobeStream
+} from 'fluent-ffmpeg';
+
 
 interface IResolution {
   width: number,

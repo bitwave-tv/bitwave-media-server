@@ -31,11 +31,13 @@ export const extractToken = ( req, res, next ) => {
 };
 
 export const validateUserToken: () => ValidationChain[] = (): ValidationChain[] => {
-    return [
-      check('user').isString(),
-      check('token').isJWT(),
-    ]
-  };
+  return [
+    check( 'user' )
+      .isString(),
+    check( 'token' )
+      .isJWT(),
+  ];
+};
 
 export const validate = ( req, res, next ) => {
   console.log( 'validate' );

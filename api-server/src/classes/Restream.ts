@@ -38,8 +38,8 @@ class Restreamer {
     const inputStream  = `rtmp://nginx-server/live/${user}`;
     const outputStream = `${restreamServeer}/${restreamKey}`;
 
-    const ffmpeg = FfmpegCommand( inputStream, { stdoutLines: 1 } );
-    // const ffmpeg = FfmpegCommand();
+    // const ffmpeg = FfmpegCommand( inputStream, { stdoutLines: 1 } );
+    const ffmpeg = FfmpegCommand( { stdoutLines: 1 } );
 
     ffmpeg.input( inputStream );
     ffmpeg.inputOptions([
@@ -55,13 +55,8 @@ class Restreamer {
       '-map_metadata -1',
       '-metadata application=bitwavetv/livestream',
 
-      // Audio (copy)
-      '-codec:a copy',
-      // '-map 0:{audioid}', // audioid
-
-      // Video
-      '-codec:v copy',
-      // '-map 0:{videoid}', //videoid
+      '-codec:a copy', // Audio (copy)
+      '-codec:v copy', // Video (copy)
 
       // Extra
       '-vsync 0',

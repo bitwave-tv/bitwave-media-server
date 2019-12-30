@@ -80,6 +80,16 @@ class BitwaveMediaServer {
   }
 
   /**
+   * add favicon
+   */
+  addFavicon () {
+    this.app.use(
+      '/favicon.ico',
+      express.static( path.join ( this.__public, 'favicon.ico' ) )
+    );
+  }
+
+  /**
    * add routes
    */
   addRoutes () {
@@ -134,6 +144,7 @@ class BitwaveMediaServer {
     this.addCompression();
     this.addExpressLogger();
     this.beautifyJSONResponse();
+    this.addFavicon();
     this.addRoutes();
   }
 

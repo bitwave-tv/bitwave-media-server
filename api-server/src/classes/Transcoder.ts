@@ -28,7 +28,6 @@ class Transcoder {
       return;
     }
 
-    let ffmpeg;
     // let ffprobe;
 
     console.log( `Start transcoding ${user}` );
@@ -36,7 +35,8 @@ class Transcoder {
     const inputStream  = `rtmp://nginx-server/live/${user}`;
     const outputStream = `rtmp://nginx-server/transcode/${user}`;
 
-    ffmpeg = new FfmpegCommand( inputStream, { stdoutLines: 1 } );
+    // const ffmpeg = FfmpegCommand( inputStream, { stdoutLines: 1 } );
+    const ffmpeg = FfmpegCommand( { stdoutLines: 1 } );
 
     ffmpeg.input( inputStream );
     ffmpeg.inputOptions([
@@ -74,7 +74,9 @@ class Transcoder {
 
       // '-profile:v {profile}', // profile
       '-tune zerolatency', // tune
-    ]).size( '256x144' ).autopad();
+    ])
+      .size( '256x144' )
+      .autopad();
 
     ffmpeg.output( `${outputStream}_480` );
     ffmpeg.outputOptions([
@@ -105,7 +107,9 @@ class Transcoder {
 
       // '-profile:v {profile}', // profile
       '-tune zerolatency', // tune
-    ]).size( '854x480' ).autopad();
+    ])
+      .size( '854x480' )
+      .autopad();
 
     ffmpeg.output( `${outputStream}_src?user=${user}` );
     ffmpeg.outputOptions([
