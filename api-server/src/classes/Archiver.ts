@@ -15,8 +15,10 @@ class ArchiveManager {
        .collection( 'archives' )
        .doc( archiveId );
 
+     const archiveDocument = await archiveReference.get();
+
      // Get data from archive
-     const archive = ( await archiveReference.get() ).data();
+     const archive = archiveDocument.data();
 
      // Delete archive file
      await fsp.unlink( archive.file );
@@ -29,7 +31,7 @@ class ArchiveManager {
      // Return results
      return {
        success: true,
-       message: `${archive.username}'s archive '${archive.title}' deleted: ${archiveId}`,
+       message: `archive deleted: ${archiveId}`,
      };
 
    } catch ( error ) {
