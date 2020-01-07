@@ -37,14 +37,15 @@ class StreamRelay {
     const inputStream  = `rtmp://nginx-server/live/${user}`;
     const outputStream = `rtmp://nginx-server/hls/${user}`;
 
-    // const ffmpeg = FfmpegCommand( inputStream, { stdoutLines: 1 } );
     const ffmpeg = FfmpegCommand( { stdoutLines: 1 } );
 
     ffmpeg.input( inputStream );
     ffmpeg.inputOptions([
       // '-re',
       '-err_detect ignore_err',
+      '-ignore_unknown',
       '-stats',
+      '-fflags nobuffer+genpts',
     ]);
 
     ffmpeg.output( `${outputStream}?user=${user}` );
@@ -81,7 +82,8 @@ class StreamRelay {
 
       .on( 'end', () => {
         relayLogger.info( chalk.redBright( `Livestream ended.` ) );
-        this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() ).process = null;
+        // this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() ).process = null;
+        this.transcoders = this.transcoders.filter( t => t.user.toLowerCase() !== user.toLowerCase() );
         // retry
       })
 
@@ -90,7 +92,8 @@ class StreamRelay {
         console.log( error );
         console.log( stdout );
         console.log( stderr );
-        this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() ).process = null;
+        // this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() ).process = null;
+        this.transcoders = this.transcoders.filter( t => t.user.toLowerCase() !== user.toLowerCase() );
         // retry
       })
 

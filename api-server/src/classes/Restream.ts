@@ -5,9 +5,12 @@ import logger from '../classes/Logger';
 import * as admin from 'firebase-admin';
 const restreamLogger = logger( 'RSTRM' );
 
+type IRestreamerStatus = 'STARTING'|'ACTIVE'|'ERROR'|'STOPPING'|'STOPPED';
+
 interface IRestreamRelay {
   user: string;
   id: string;
+  state: IRestreamerStatus;
   remoteService: string;
   process: any;
   data: IProgressData;
@@ -19,8 +22,6 @@ interface IProgressData {
   fps: number;
   time: number
 }
-
-type IRestreamerStatus = 'IDLE'|'STARTING'|'STARTED'|'ACTIVE'|'ERROR'|'STOPPING'|'STOPPED';
 
 class Restreamer {
   public restreams: IRestreamRelay[];
@@ -49,19 +50,18 @@ class Restreamer {
 
     restreamLogger.info( chalk.greenBright( `Start restream for ${user}` ) );
 
-    await this.setRestreamerStatus( restreamerId, 'STARTING' );
-
     const inputStream  = `rtmp://nginx-server/live/${user}`;
     const outputStream = `${restreamServeer}/${restreamKey}`;
 
-    // const ffmpeg = FfmpegCommand( inputStream, { stdoutLines: 1 } );
     const ffmpeg = FfmpegCommand( { stdoutLines: 1 } );
 
     ffmpeg.input( inputStream );
     ffmpeg.inputOptions([
       // '-re',
       '-err_detect ignore_err',
+      '-ignore_unknown',
       '-stats',
+      '-fflags nobuffer+genpts+igndts',
     ]);
 
     ffmpeg.output( `${outputStream}` );
@@ -83,11 +83,12 @@ class Restreamer {
     ffmpeg
       .on( 'start', async commandLine => {
         restreamLogger.info( chalk.yellowBright( `Starting restreamer.` ) );
-        console.log( `Restreaming to: ${outputStream}` );
+        console.log( `Restreaming to: ${restreamServeer}` );
         console.log( commandLine );
         this.restreams.push({
           user: user,
           id: restreamerId,
+          state: 'STARTING',
           remoteService: restreamServeer,
           process: ffmpeg,
           data: {
@@ -97,34 +98,43 @@ class Restreamer {
             time: 0,
           },
         });
-        await this.setRestreamerStatus( restreamerId, 'STARTED' );
+        await this.setRestreamerStatus( restreamerId, 'STARTING' );
       })
 
       .on( 'end', async () => {
         restreamLogger.info( chalk.redBright( `Restream ended.` ) );
-        this.restreams.find(t => t.user.toLowerCase() === user.toLowerCase() ).process = null;
+        this.removeRestream( restreamerId );
         await this.setRestreamerStatus( restreamerId, 'STOPPED' );
         // retry
       })
 
       .on( 'error', async ( error, stdout, stderr ) => {
-        restreamLogger.error( `Restreaming error!` );
+        restreamLogger.error( chalk.redBright( `Restreaming error!` ) );
         console.log( error );
         console.log( stdout );
         console.log( stderr );
-        this.restreams.find(t => t.user.toLowerCase() === user.toLowerCase() ).process = null;
+
+        this.removeRestream( restreamerId );
         await this.setRestreamerStatus( restreamerId, 'ERROR' );
         // retry
       })
 
+      .on( 'data', async data => {
+        console.log( data );
+      })
+
       .on( 'progress', async progress => {
-        this.restreams.find(t => t.user.toLowerCase() === user.toLowerCase() ).data = {
+        const restreamer = this.restreams.find(t => t.user.toLowerCase() === user.toLowerCase() );
+        if ( restreamer.state !== 'ACTIVE' ) {
+          await this.setRestreamerStatus( restreamerId, 'ACTIVE' );
+          restreamer.state = 'ACTIVE';
+        }
+        restreamer.data = {
           frames: progress.frames,
           fps: progress.currentFps,
           bitRate: progress.currentKbps,
           time: progress.timemark,
         };
-        await this.setRestreamerStatus( restreamerId, 'ACTIVE' );
         // console.log(`${progress.frames} FPS:${progress.currentFps} ${(progress.currentKbps / 1000).toFixed(1)}Mbps - ${progress.timemark}`);
       });
 
@@ -134,16 +144,20 @@ class Restreamer {
   }
 
   async stopRestream ( user: string ): Promise<boolean> {
-    const transcoder = this.restreams.find(t => t.user.toLowerCase() === user.toLowerCase() );
-    if ( transcoder.process !== null ) {
-      transcoder.process.kill( 'SIGKILL' );
+    const restreamer = this.restreams.find(t => t.user.toLowerCase() === user.toLowerCase() );
+    if ( restreamer.process !== null ) {
       restreamLogger.info( `Stopping restreamer!` );
-      await this.setRestreamerStatus( transcoder.id, 'STOPPING' );
+      await this.setRestreamerStatus( restreamer.id, 'STOPPING' );
+      restreamer.process.kill( 'SIGKILL' );
       return true;
     } else {
       restreamLogger.error( `Restreamer process not running for ${user}.` );
       return false;
     }
+  }
+
+  removeRestream ( restreamerId: string ) {
+    this.restreams = this.restreams.filter( t => t.id !== restreamerId );
   }
 
   /**
@@ -170,7 +184,7 @@ class Restreamer {
       state: status,
     });
 
-    restreamLogger.info( `${chalk.cyanBright(data._username)}'s transcoder is ${ chalk.cyanBright.bold(status) }.` );
+    restreamLogger.info( `${chalk.cyanBright(data._username)}'s restreamer is ${ chalk.cyanBright.bold(status) }.` );
   };
 
   async getRestreamerData ( username: string ): Promise<FirebaseFirestore.QueryDocumentSnapshot|false> {
