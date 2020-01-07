@@ -390,7 +390,7 @@ router.post(
 
     // Start restreaming process
     apiLogger.info( `${chalk.cyanBright.bold( streamer )} Starting restreamer...` );
-    restreamer.startRestream( streamer, server, key );
+    await restreamer.startRestream( streamer, server, key );
 
     res.send( `${streamer} is now being restreamed` );
   },
@@ -421,7 +421,7 @@ router.post(
 
     // Stop restreaming process
     apiLogger.info( `${chalk.cyanBright.bold( streamer )}'s restreaming process has been stopped.` );
-    restreamer.stopRestream( streamer );
+    await restreamer.stopRestream( streamer );
 
     res.send( `${streamer} is no longer being restreamed` );
   },
