@@ -4,6 +4,8 @@ import * as chalk from 'chalk';
 import logger from '../classes/Logger';
 const relayLogger = logger( 'RELAY' );
 
+import { SocketClient } from './Socket';
+
 interface IStreamRelay {
   user: string;
   process: any;
@@ -37,7 +39,7 @@ class StreamRelay {
     const inputStream  = `rtmp://nginx-server/live/${user}`;
     const outputStream = `rtmp://nginx-server/hls/${user}`;
 
-    const ffmpeg = FfmpegCommand( { stdoutLines: 1 } );
+    const ffmpeg = FfmpegCommand( { stdoutLines: 3 } );
 
     ffmpeg.input( inputStream );
     ffmpeg.inputOptions([
@@ -45,7 +47,7 @@ class StreamRelay {
       '-err_detect ignore_err',
       '-ignore_unknown',
       '-stats',
-      '-fflags nobuffer+genpts',
+      '-fflags nobuffer+genpts+igndts',
     ]);
 
     ffmpeg.output( `${outputStream}?user=${user}` );
@@ -78,12 +80,14 @@ class StreamRelay {
             time: 0,
           },
         });
+        SocketClient.onConnect( user );
       })
 
       .on( 'end', () => {
         relayLogger.info( chalk.redBright( `Livestream ended.` ) );
         // this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() ).process = null;
         this.transcoders = this.transcoders.filter( t => t.user.toLowerCase() !== user.toLowerCase() );
+        SocketClient.onDisconnect( user );
         // retry
       })
 
@@ -94,6 +98,7 @@ class StreamRelay {
         console.log( stderr );
         // this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() ).process = null;
         this.transcoders = this.transcoders.filter( t => t.user.toLowerCase() !== user.toLowerCase() );
+        SocketClient.onDisconnect( user );
         // retry
       })
 
@@ -104,6 +109,7 @@ class StreamRelay {
           bitRate: progress.currentKbps,
           time: progress.timemark,
         };
+        SocketClient.onUpdate( user, progress );
         // console.log(`${progress.frames} FPS:${progress.currentFps} ${(progress.currentKbps / 1000).toFixed(1)}Mbps - ${progress.timemark}`);
       });
 

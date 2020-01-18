@@ -143,21 +143,54 @@ router.post(
  * Transcoded stream start
  */
 router.post(
-  '/stream/transcode',
+  '/stream/transcode/publish',
   async ( req, res ) => {
     const user = req.body.user;
     const app  = req.body.app;
     const name = req.body.name;
 
     if ( user ) {
-      setTimeout( async () => {
+      const timer: Timeout = setTimeout( async () => {
         await streamauth.setTranscodeStatus( user, true );
         apiLogger.info(`[${app}] ${chalk.cyanBright.bold(user)} is now ${chalk.greenBright.bold('transcoded')}.`);
       }, updateDelay * 1000 );
+
+
+      liveTimers.push({
+        user: `${name}-transcoder`,
+        timer: timer,
+      });
     }
+
     res.send( `[${name}] is transcoding ${user}.` );
   },
 );
+
+/**
+ * Transcoded stream done
+ */
+router.post(
+  '/stream/transcode/end',
+  async ( req, res ) => {
+    const user = req.body.user;
+    const app  = req.body.app;
+    const name = req.body.name;
+
+    if ( user ) {
+      apiLogger.info(`[${app}] ${chalk.cyanBright.bold(user)} has disconnected from ${chalk.redBright.bold('transcoder')}.`);
+
+      // Prevent live timers from firing if we go offline
+      liveTimers.map( val => {
+        if ( val.user === `${name}-transcoder` )
+          clearTimeout( val.timer );
+        else
+          return val;
+      });
+    }
+    res.send( `[${name}] is NOT transcoding ${user}.` );
+  },
+);
+
 
 /**
  * Livestream disconnect
@@ -226,7 +259,7 @@ router.post(
 
     // Failed to find user on server
     if ( !streamer ) {
-      apiLogger.info( `${chalk.redBright( user )} failed to transcode... ( not found )` );
+      apiLogger.info( `${chalk.redBright( user )} not found - failed to transcode...` );
       streamer = user;
     }
 
@@ -257,7 +290,7 @@ router.post(
 
     // Failed to find user on server
     if ( !streamer ) {
-      apiLogger.info( `${chalk.redBright( user)} failed to transcode... ( not found )` );
+      apiLogger.info( `${chalk.redBright( user)} not found - failed to stop transcode...` );
       streamer = user;
     }
 
@@ -272,9 +305,7 @@ router.post(
     transcoder.stopTranscoder( streamer );
     apiLogger.info( `${chalk.cyanBright.bold( streamer )}'s transcoding process has been stopped.` );
 
-    res
-      .status( 200 )
-      .send(`${ streamer } is no longer being transcoded.`);
+    res.send(`${ streamer } is no longer being transcoded.`);
   },
 );
 
@@ -472,6 +503,8 @@ router.get(
   },
 );
 
+
+
 //------------------------------
 
 /**
@@ -507,6 +540,8 @@ router.get(
     );
   },
 );
+
+
 
 //------------------------------
 
@@ -549,6 +584,7 @@ router.get(
 );
 
 
+
 /*********************************
  * Server Data
  */
@@ -579,6 +615,7 @@ router.get(
 );
 
 
+
 /*********************************
  * Archive Commands
  */
@@ -597,6 +634,8 @@ router.delete(
     res.send( result );
   },
 );
+
+
 
 /*********************************
  * Admin Commands

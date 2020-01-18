@@ -35,7 +35,7 @@ class Transcoder {
     const inputStream  = `rtmp://nginx-server/live/${user}`;
     const outputStream = `rtmp://nginx-server/transcode/${user}`;
 
-    const ffmpeg = FfmpegCommand( { stdoutLines: 1 } );
+    const ffmpeg = FfmpegCommand( { stdoutLines: 3 } );
 
     ffmpeg.input( inputStream );
     ffmpeg.inputOptions([
@@ -43,7 +43,7 @@ class Transcoder {
       '-err_detect ignore_err',
       '-ignore_unknown',
       '-stats',
-      '-fflags nobuffer+genpts',
+      '-fflags nobuffer+genpts+igndts',
     ]);
 
     ffmpeg.output( `${outputStream}_144` );
@@ -58,7 +58,7 @@ class Transcoder {
 
       // Video (transcode)
       '-c:v libx264',
-      '-preset:v veryfast', // preset
+      '-preset:v superfast', // preset
       '-b:v 250k', //bitrate
       // '-maxrate {bitrate}k', // bitrate
       // '-bufsize {bitrate}k', // bitrate
@@ -91,7 +91,7 @@ class Transcoder {
 
       // Video (transcode)
       '-c:v libx264',
-      '-preset:v veryfast', // preset
+      '-preset:v superfast', // preset
       '-b:v 500k', //bitrate
       // '-maxrate {bitrate}k', // bitrate
       // '-bufsize {bitrate}k', // bitrate

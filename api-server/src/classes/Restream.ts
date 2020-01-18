@@ -53,7 +53,7 @@ class Restreamer {
     const inputStream  = `rtmp://nginx-server/live/${user}`;
     const outputStream = `${restreamServeer}/${restreamKey}`;
 
-    const ffmpeg = FfmpegCommand( { stdoutLines: 1 } );
+    const ffmpeg = FfmpegCommand( { stdoutLines: 3 } );
 
     ffmpeg.input( inputStream );
     ffmpeg.inputOptions([
@@ -115,7 +115,11 @@ class Restreamer {
         console.log( stderr );
 
         this.removeRestream( restreamerId );
-        await this.setRestreamerStatus( restreamerId, 'ERROR' );
+        if ( error.message.includes('SIGKILL') ) {
+          await this.setRestreamerStatus( restreamerId, 'STOPPED' );
+        } else {
+          await this.setRestreamerStatus( restreamerId, 'ERROR' );
+        }
         // retry
       })
 
