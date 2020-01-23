@@ -39,7 +39,10 @@ interface ILiveTimer {
 }
 
 let liveTimers: ILiveTimer[] = [];
-const updateDelay: number    = 10;
+const updateDelay: number    = 10; // 10 seconds
+
+let notificationTimers: ILiveTimer[] = [];
+const notificationDelay: number     = 60; // 60 seconds
 
 const router = Router();
 
@@ -139,6 +142,77 @@ router.post(
   },
 );
 
+
+/**
+ * Publish HLS stream, send notifications
+ */
+router.post(
+  '/stream/publish',
+  async ( req, res ) => {
+    const app  = req.body.app;  // Always HLS
+    const name = req.body.name; // Stream name
+
+    // Basic sanity check
+    if ( app !== 'hls' ) return res.status(404).send(`Unknown stream endpoint ${app}.`);
+
+    if ( name ) {
+      const timer: Timeout = setTimeout( async () => {
+        apiLogger.info(`[${app}] ${chalk.cyanBright.bold(name)} is now ${chalk.greenBright.bold('sending notification request')}.`);
+        // Send notifications
+        const options = { form: { streamer: name } };
+        await rp.post( 'https://api.bitwave.tv/api/notification/live', options );
+      }, notificationDelay * 1000 );
+
+      notificationTimers.push({
+        user: name,
+        timer: timer,
+      });
+    }
+
+    apiLogger.info(`[${app}] ${chalk.cyanBright.bold(name)} is now ${chalk.greenBright.bold('PUBLISHED')}.`);
+    res.send( `[${name}] Published ${name}.` );
+  },
+);
+
+
+/**
+ * Livestream disconnect
+ */
+router.post(
+  '/stream/end',
+  async ( req, res ) => {
+    const app  = req.body.app;
+    const name = req.body.name;
+
+    // Streamer has  fully disconnected
+    if ( app === 'live' ) {
+
+      // Prevent live timers from firing if we go offline
+      liveTimers.map( val => {
+        if ( val.user === name )
+          clearTimeout( val.timer );
+        else
+          return val;
+      });
+
+      // Prevent notifications timers from firing if we go offline too soon
+      notificationTimers.map( val => {
+        if ( val.user === name )
+          clearTimeout( val.timer );
+        else
+          return val;
+      });
+
+      // Set offline status
+      await streamauth.setLiveStatus( name, false );
+
+      res.send( `[${app}] ${name} is now OFFLINE` );
+    }
+  },
+);
+
+
+
 /**
  * Transcoded stream start
  */
@@ -191,34 +265,6 @@ router.post(
   },
 );
 
-
-/**
- * Livestream disconnect
- */
-router.post(
-  '/stream/end',
-  async ( req, res ) => {
-    const app  = req.body.app;
-    const name = req.body.name;
-
-    // Streamer has  fully disconnected
-    if ( app === 'live' ) {
-
-      // Prevent live timers from firing if we go offline
-      liveTimers.map( val => {
-        if ( val.user === name )
-          clearTimeout( val.timer );
-        else
-          return val;
-      });
-
-      // Set offline status
-      await streamauth.setLiveStatus( name, false );
-
-      res.send( `[${app}] ${name} is now OFFLINE` );
-    }
-  },
-);
 
 
 
@@ -390,6 +436,7 @@ router.post(
 
 /**
  * Start restreaming process
+ * Protected route
  */
 router.post(
   '/restreamer/start',
@@ -429,6 +476,7 @@ router.post(
 
 /**
  * Stop restreaming process
+ * Protected route
  */
 router.post(
   '/restreamer/stop',
@@ -458,6 +506,67 @@ router.post(
   },
 );
 
+
+//------------------------------
+
+/**
+ * Restreamer stats
+ * Protected route
+ */
+router.get(
+  '/restreamer/stats',
+
+  extractToken,
+  validateUserToken(),
+  validate,
+  authenticatedRequest,
+
+  async (req, res ) => {
+    const data = restreamer.restreams.map( t => ({
+      user: t.user,
+      ffmpegProc: t.process?.ffmpegProc,
+      ffprobeData: t.process?._ffprobeData,
+      data: t.data
+    }));
+
+    res.send( data );
+  },
+);
+
+
+/**
+ * Restreamer user stat
+ * Protected route
+ */
+router.get(
+  '/restreamer/stats/:user',
+
+  extractToken,
+  validateUserToken(),
+  validate,
+  authenticatedRequest,
+
+  async (req, res ) => {
+    const data = restreamer.restreams
+      .filter( stats =>
+        stats.user.toLowerCase() === req.params.user.toLowerCase()
+      )
+      .map( stats =>
+        ( { user: stats.user, ffmpegProc: stats.process?.ffmpegProc, data: stats.data } )
+      );
+
+    res.send(
+      restreamer.restreams
+        .filter( stats => {
+          if ( stats.user.toLowerCase() === req.params.user.toLowerCase() )
+            return { user: stats.user, data: stats.data }
+        })
+    );
+  },
+);
+
+
+
 //-------------------------------
 
 
@@ -482,6 +591,8 @@ router.get(
     res.send( data );
   },
 );
+
+
 
 /**
  * HLS stream stats for single user
@@ -533,48 +644,6 @@ router.get(
 
     res.send(
       transcoder.transcoders
-        .filter( stats => {
-          if ( stats.user.toLowerCase() === req.params.user.toLowerCase() )
-            return { user: stats.user, data: stats.data }
-        })
-    );
-  },
-);
-
-
-
-//------------------------------
-
-/**
- * Restreamer stats
- */
-router.get(
-  '/restreamer/stats',
-  async (req, res ) => {
-    const data = restreamer.restreams.map( t => ({
-      user: t.user,
-      ffmpegProc: t.process?.ffmpegProc,
-      ffprobeData: t.process?._ffprobeData,
-      data: t.data
-    }));
-
-    res.send( data );
-  },
-);
-
-router.get(
-  '/restreamer/stats/:user',
-  async (req, res ) => {
-    const data = restreamer.restreams
-      .filter( stats =>
-        stats.user.toLowerCase() === req.params.user.toLowerCase()
-      )
-      .map( stats =>
-        ( { user: stats.user, ffmpegProc: stats.process?.ffmpegProc, data: stats.data } )
-      );
-
-    res.send(
-      restreamer.restreams
         .filter( stats => {
           if ( stats.user.toLowerCase() === req.params.user.toLowerCase() )
             return { user: stats.user, data: stats.data }
