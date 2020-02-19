@@ -112,7 +112,7 @@ class StreamAuth {
     }
 
     const streamUrl = `https://${this.cdnServer}/${hlsStream}/${username}/index.m3u8`;
-    const thumbUrl  = `https://${this.cdnServer}/${thumbnail}/${username}.png`;
+    const thumbUrl  = `https://${this.cdnServer}/${thumbnail}/${username}.jpg`;
 
     await streamRef.update({
       live: state,
@@ -137,7 +137,7 @@ class StreamAuth {
    * @param {boolean} transcoded - Transcode status
    * @return {Promise<void>}
    */
-  async setTranscodeStatus ( username: string, transcoded: boolean ): Promise<void> {
+  async setTranscodeStatus ( username: string, transcoded: boolean, location?: string ): Promise<void> {
     const streamRef = admin.firestore()
       .collection( 'streams' )
       .doc( username.toLowerCase() );
@@ -151,7 +151,8 @@ class StreamAuth {
 
     let url: string;
     if ( transcoded ) {
-      url = `https://${this.cdnServer}/${transcodeStream}/${username}.m3u8`;
+      // url = `https://${this.cdnServer}/${transcodeStream}/${username}.m3u8`;
+      url = `https://${this.cdnServer}/${location}/${username}.m3u8`;
     } else {
       url = `https://${this.cdnServer}/${hlsStream}/${username}/index.m3u8`;
     }

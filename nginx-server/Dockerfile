@@ -4,9 +4,9 @@ FROM $IMAGE as builder
 
 MAINTAINER dispatch <admin@bitwave.tv>
 
-COPY --from=bitwavetv/skylight:latest /usr/local/bin /usr/local/bin
-COPY --from=bitwavetv/skylight:latest /usr/local/nginx /usr/local/nginx
-COPY --from=bitwavetv/skylight:latest /usr/local/lib /usr/local/lib
+COPY --from=bitwavetv/skylight:v1.1.1 /usr/local/bin /usr/local/bin
+COPY --from=bitwavetv/skylight:v1.1.1 /usr/local/nginx /usr/local/nginx
+COPY --from=bitwavetv/skylight:v1.1.1 /usr/local/lib /usr/local/lib
 
 RUN apt-get update && \
     apt-get install -y \
@@ -18,6 +18,7 @@ RUN apt-get update && \
         zlib1g \
         v4l-utils \
         libv4l-0 \
+        libxcb-randr0-dev libxcb-xtest0-dev libxcb-xinerama0-dev libxcb-shape0-dev libxcb-xkb-dev \
         alsa-utils
 
 RUN apt-get remove -y \

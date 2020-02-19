@@ -8,6 +8,8 @@ import {
   FfprobeFormat,
   FfprobeStream
 } from 'fluent-ffmpeg';
+import { streamauth } from '../webserver/api';
+import * as chalk from 'chalk';
 
 
 interface IResolution {
@@ -85,7 +87,25 @@ class ServerData {
           return;
         }
 
-        log.info( JSON.stringify( data ) );
+        // log.info( JSON.stringify( data ) );
+
+        // Log ffprobe results
+        const videoData = data.streams.find(stream => stream.codec_type === 'video' );
+        const audioData = data.streams.find(stream => stream.codec_type === 'audio' );
+
+        if ( videoData ) {
+          const vBitrate = (parseFloat(videoData.bit_rate) / 1024 / 1024).toFixed(2);
+          log.info( `${videoData.codec_name} ${videoData.width}x${videoData.height} rFPS:${videoData.r_frame_rate} avgFPS:${videoData.avg_frame_rate} ${vBitrate}mb/s KeyFrame=${videoData.has_b_frames}` );
+        } else {
+          log.error( chalk.redBright('No video stream!') );
+        }
+
+        if ( audioData ) {
+          const aBitrate = (parseFloat(audioData.bit_rate) / 1024).toFixed(2);
+          log.info( `${audioData.codec_name} ${audioData.channels} channel ${aBitrate}kbs` );
+        } else {
+          log.error( chalk.redBright('No audio stream!') );
+        }
 
         const streams: FfprobeStream[] = data.streams;
 
@@ -96,6 +116,7 @@ class ServerData {
         this.updateStreamerData( streamer, videoStream, audioStream, format );
       });
     } catch ( error ) {
+      console.log(`Error occured probing streaming ${streamer}`);
       log.error( error );
     }
   }
@@ -119,7 +140,7 @@ class ServerData {
 
     // Update video stream data
     data.video = [];
-    if ( videoStream ) {
+    if ( videoStream && videoStream.length > 0 ) {
       videoStream.forEach( vs => {
         data.video.push({
           duration: vs.start_time / 60,
@@ -133,12 +154,11 @@ class ServerData {
           }
         });
       });
-
     }
 
     // Update audio stream data
     data.audio = [];
-    if ( audioStream ) {
+    if ( audioStream && audioStream.length > 0 ) {
       audioStream.forEach( as => {
         data.audio.push({
           codec: as.codec_name,
@@ -183,7 +203,7 @@ class ServerData {
   /**
    * Gets case sensitive streamer name from insensitive input
    * @param {string} streamer
-   * @return {string|undefined} -returns undefined if failed to find streamer
+   * @return {string|undefined} - returns undefined if failed to find streamer
    */
   getStreamer ( streamer: string ): string|undefined {
     return this.getStreamerList()
@@ -209,8 +229,22 @@ class ServerData {
   updateStreamer ( streamer: string ): boolean {
     const user = this.getStreamer( streamer );
     if ( !user ) return false;
-    this.probeStream( user );
+    this.probeStream( user ); // potential DDoS exploit
     return true;
+  }
+
+  /**
+   * Cleans up data when shutting down server
+   * @return {Promise<void>} - returns promise
+   */
+  async shutdown (): Promise<void> {
+    const streamers = this.getStreamerList();
+    if ( !streamers.length ) return Promise.resolve();
+    await Promise.all(
+      streamers.map( async streamer => {
+        await streamauth.setLiveStatus( streamer, false );
+      })
+    );
   }
 }
 

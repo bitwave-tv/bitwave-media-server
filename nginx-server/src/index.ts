@@ -48,7 +48,8 @@ if ( envVar.hasErrors() ) process.exit();
 
 
 // start NGINX-RTMP
-nginxRtmp ( config )
+const nginxServer = nginxRtmp ( config );
+nginxServer
   .start (
     process.env.RS_HTTPS === 'true'
   )
@@ -58,3 +59,30 @@ nginxRtmp ( config )
   .catch (
     error => webLogger.error( `Error starting webserver and nginx for application:\n${error}` )
   );
+
+
+//--------------
+// Graceful exit
+
+// Define Shutdown
+const shutdown = async ( signal, value ) => {
+  console.log( `NGINX server stopped by ${signal} with value ${value}` );
+  nginxServer.process.exit( 128 + value );
+  console.log( 'shutdown!' );
+};
+
+import Signals = NodeJS.Signals;
+const signals = {
+  'SIGHUP': 1,
+  'SIGINT': 2,
+  'SIGTERM': 15
+};
+
+// Create a listener for each of the signals that we want to handle
+Object.keys( signals )
+  .forEach( ( signal: Signals )  => {
+    process.on( signal, async () => {
+      console.log( `NGINX server received a ${signal} signal` );
+      await shutdown( signal, signals[ signal ] );
+    });
+  });

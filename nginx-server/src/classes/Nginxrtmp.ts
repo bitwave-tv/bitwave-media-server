@@ -22,7 +22,7 @@ let abort;
 class Nginxrtmp {
   config: any;
   logger: any;
-  process: any;
+  public process: any;
   private allowRestart: boolean;
 
   /**

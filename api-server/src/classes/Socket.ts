@@ -50,6 +50,41 @@ class APISocket {
     this.socket.emit( 'ingestion.streamer.update', data );
   }
 
+  onRestreamStart ( streamer ) {
+    if ( !this.connected ) return;
+
+    const data = {
+      streamer: streamer,
+      server: this.server,
+    };
+
+    this.socket.emit( 'ingestion.restreamer.connect', data );
+    console.log( `${streamer} restreamer has connected` );
+  }
+
+  onRestreamUpdate ( streamer, stats ) {
+    if ( !this.connected ) return;
+
+    const data = {
+      streamer: streamer,
+      data: stats,
+    };
+
+    this.socket.emit( 'ingestion.restreamer.update', data );
+  }
+
+  onRestreamEnd ( streamer ) {
+    if ( !this.connected ) return;
+
+    const data = {
+      streamer: streamer,
+      server: this.server,
+    };
+
+    this.socket.emit( 'ingestion.restreamer.disconnect', data );
+    console.log( `${streamer} restreamer has disconnected` );
+  }
+
   onDisconnect( streamer ) {
     if ( !this.connected ) return;
 

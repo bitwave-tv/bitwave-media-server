@@ -20,7 +20,7 @@ class Transcoder {
     this.transcoders = [];
   }
 
-  startTranscoder ( user ) {
+  startTranscoder ( user: string, enable144p: boolean, enable480p: boolean ) {
     // Check for existing transcoders
     const transcoder = this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() );
     if ( transcoder && transcoder.process !== null ) {
@@ -28,89 +28,96 @@ class Transcoder {
       return;
     }
 
-    // let ffprobe;
-
     console.log( `Start transcoding ${user}` );
 
     const inputStream  = `rtmp://nginx-server/live/${user}`;
-    const outputStream = `rtmp://nginx-server/transcode/${user}`;
+
+    let outputStream;
+    // there is nothing to do if 144 & 480 are disabled
+    if ( !enable144p && !enable480p ) return false;
+    if ( enable144p && !enable480p ) // 144p only
+      outputStream = `rtmp://nginx-server/transcode_144/${user}`;
+    if ( !enable144p && enable480p ) // 480p only
+      outputStream = `rtmp://nginx-server/transcode_480/${user}`;
+    if ( enable144p && enable480p ) // 144p && 480p
+      outputStream = `rtmp://nginx-server/transcode/${user}`;
 
     const ffmpeg = FfmpegCommand( { stdoutLines: 3 } );
 
     ffmpeg.input( inputStream );
     ffmpeg.inputOptions([
-      // '-re',
       '-err_detect ignore_err',
       '-ignore_unknown',
       '-stats',
       '-fflags nobuffer+genpts+igndts',
     ]);
 
-    ffmpeg.output( `${outputStream}_144` );
-    ffmpeg.outputOptions([
-      '-f flv',
-      '-map_metadata -1',
-      '-metadata application=bitwavetv/transcoder',
+    if ( enable144p ) {
+      ffmpeg.output( `${outputStream}_144` );
+      ffmpeg.outputOptions( [
+        '-f flv',
+        '-map_metadata -1',
+        '-metadata application=bitwavetv/transcoder',
 
-      // Audio (copy)
-      '-c:a copy',
-      // '-map 0:{audioid}', // audioid
+        // Audio (copy)
+        '-c:a copy',
 
-      // Video (transcode)
-      '-c:v libx264',
-      '-preset:v superfast', // preset
-      '-b:v 250k', //bitrate
-      // '-maxrate {bitrate}k', // bitrate
-      // '-bufsize {bitrate}k', // bitrate
-      // '-r {fps}', // fps
-      '-g 60', // gop
-      '-pix_fmt yuv420p',
-      // '-map 0:{videoid}', // videoid
-      '-vsync 1',
+        // Video (transcode)
+        '-c:v libx264',
+        '-preset:v superfast', // preset
+        // '-b:v 250k', //bitrate
+        // '-maxrate {bitrate}k', // bitrate
+        // '-bufsize {bitrate}k', // bitrate
+        // '-r {fps}', // fps
+        '-g 60', // gop
+        '-pix_fmt yuv420p',
+        '-vsync 1',
 
-      // custom
-      '-crf 35',
-      '-muxdelay 0',
-      '-copyts',
+        // custom
+        '-crf 35',
+        '-muxdelay 0',
+        '-copyts',
 
-      // '-profile:v {profile}', // profile
-      '-tune zerolatency', // tune
-    ])
-      .size( '256x144' )
-      .autopad();
+        '-tune zerolatency', // tune
 
-    ffmpeg.output( `${outputStream}_480` );
-    ffmpeg.outputOptions([
-      '-f flv',
-      '-map_metadata -1',
-      '-metadata application=bitwavetv/transcoder',
+        '-x264opts no-scenecut',
+      ] )
+        .size( '256x144' )
+        .autopad( true, 'black' );
+    }
 
-      // Audio (copy)
-      '-c:a copy',
-      // '-map 0:{audioid}', // audioid
+    if ( enable480p ) {
+      ffmpeg.output( `${outputStream}_480` );
+      ffmpeg.outputOptions( [
+        '-f flv',
+        '-map_metadata -1',
+        '-metadata application=bitwavetv/transcoder',
 
-      // Video (transcode)
-      '-c:v libx264',
-      '-preset:v superfast', // preset
-      '-b:v 500k', //bitrate
-      // '-maxrate {bitrate}k', // bitrate
-      // '-bufsize {bitrate}k', // bitrate
-      // '-r {fps}', // fps
-      '-g 60', // gop
-      '-pix_fmt yuv420p',
-      // '-map 0:{videoid}', // videoid
-      '-vsync 1',
+        // Audio (copy)
+        '-c:a copy',
 
-      // custom
-      '-crf 35',
-      '-muxdelay 0',
-      '-copyts',
+        // Video (transcode)
+        '-c:v libx264',
+        '-preset:v superfast', // preset
+        // '-b:v 500k', //bitrate
+        // '-maxrate {bitrate}k', // bitrate
+        // '-bufsize {bitrate}k', // bitrate
+        '-g 60', // gop
+        '-pix_fmt yuv420p',
+        '-vsync 1',
 
-      // '-profile:v {profile}', // profile
-      '-tune zerolatency', // tune
-    ])
-      .size( '854x480' )
-      .autopad();
+        // custom
+        '-crf 35',
+        '-muxdelay 0',
+        '-copyts',
+
+        '-tune zerolatency', // tune
+
+        '-x264opts no-scenecut',
+      ] )
+        .size( '854x480' )
+        .autopad( true, 'black' );
+    }
 
     ffmpeg.output( `${outputStream}_src?user=${user}` );
     ffmpeg.outputOptions([
@@ -121,14 +128,14 @@ class Transcoder {
 
       // Audio (copy)
       '-codec:a copy',
-      // '-map 0:{audioid}', // audioid
 
       // Video
       '-codec:v copy',
-      // '-map 0:{videoid}', //videoid
       '-vsync 0',
       '-copyts',
-      '-start_at_zero'
+      '-start_at_zero',
+
+      '-x264opts no-scenecut',
     ]);
 
     ffmpeg
@@ -148,20 +155,23 @@ class Transcoder {
       })
 
       .on( 'end', () => {
-        console.log(`Stream transcoding ended.`);
-        // this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() ).process = null;
+        console.log( `Stream transcoding ended.` );
         this.transcoders = this.transcoders.filter( t => t.user.toLowerCase() !== user.toLowerCase() );
         // retry
       })
 
       .on( 'error', ( error, stdout, stderr ) => {
-        console.log( `Stream transcoding error!` );
         console.log( error );
         console.log( stdout );
         console.log( stderr );
-        // this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() ).process = null;
+
+        if ( error.message.includes( 'SIGKILL' ) ) {
+          console.log( `Stream transcoding stopped!` );
+        } else {
+          console.log( `Stream transcoding error!` );
+        }
+
         this.transcoders = this.transcoders.filter( t => t.user.toLowerCase() !== user.toLowerCase() );
-        // retry
       })
 
       .on( 'progress', progress => {
@@ -171,7 +181,6 @@ class Transcoder {
           bitRate: progress.currentKbps,
           time: progress.timemark,
         };
-        // console.log(`${progress.frames} FPS:${progress.currentFps} ${(progress.currentKbps / 1000).toFixed(1)}Mbps - ${progress.timemark}`);
       });
 
     ffmpeg.run();

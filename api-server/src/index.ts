@@ -6,6 +6,7 @@
  */
 
 'use strict';
+
 const path = require('path');
 
 // const __src = __dirname;
@@ -49,13 +50,57 @@ envVar.list ( webLogger );
 if ( envVar.hasErrors() ) process.exit();
 
 
+// For CI/CD
 if ( process.env['CICD'] === 'true' ) {
   setTimeout( () => {
     process.exit( 0 );
   }, 5 * 1000 );
 }
 
-
-// start the app
 const server = bitwaveMediaServer ( __public );
-server.startWebserver();
+
+// Define Startup
+const startup = async () => {
+  return await server.startWebserver();
+};
+
+
+import { serverData } from './classes/ServerData';
+
+// Define Shutdown
+const shutdown = async ( signal, value ) => {
+  console.log( `Forcing all connected streamers ${chalk.redBright('offline')}` );
+  await serverData.shutdown();
+  console.log( 'shutdown!' );
+  server.server.close(() => {
+    console.log( `API server stopped by ${signal} with value ${value}` );
+    process.exit( 128 + value );
+  });
+};
+
+
+//--------------
+// Graceful exit
+
+
+import Signals = NodeJS.Signals;
+const signals = {
+  'SIGHUP': 1,
+  'SIGINT': 2,
+  'SIGTERM': 15
+};
+
+// Create a listener for each of the signals that we want to handle
+Object.keys( signals )
+  .forEach( ( signal: Signals )  => {
+    process.on( signal, async () => {
+      console.log( `API server received a ${signal} signal` );
+      await shutdown( signal, signals[ signal ] );
+    });
+  });
+
+
+//-----------------
+// Fire it off! //
+//---------------
+startup().then();

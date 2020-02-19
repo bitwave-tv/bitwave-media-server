@@ -1,6 +1,6 @@
 {
   "name": "bitwave-media-server",
-  "version": "1.3.2",
+  "version": "1.3.4",
   "description": "bitwave media server",
   "main": "src/index.js",
   "scripts": {
@@ -10,7 +10,7 @@
     "start": "node ./build",
     "docker:build": "docker build -t bitwavetv/bms-nginx-server:latest .",
     "docker:up": "docker-compose up",
-    "docker:publish": "docker push bitwavetv/bms-nginx-server:latest",
+    "docker:push": "docker push bitwavetv/bms-nginx-server:latest",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

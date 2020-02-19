@@ -5,6 +5,8 @@ import logger from '../classes/Logger';
 import * as admin from 'firebase-admin';
 const restreamLogger = logger( 'RSTRM' );
 
+import { SocketClient } from './Socket';
+
 type IRestreamerStatus = 'STARTING'|'ACTIVE'|'ERROR'|'STOPPING'|'STOPPED';
 
 interface IRestreamRelay {
@@ -57,7 +59,6 @@ class Restreamer {
 
     ffmpeg.input( inputStream );
     ffmpeg.inputOptions([
-      // '-re',
       '-err_detect ignore_err',
       '-ignore_unknown',
       '-stats',
@@ -77,7 +78,9 @@ class Restreamer {
       // Extra
       '-vsync 0',
       '-copyts',
-      '-start_at_zero'
+      '-start_at_zero',
+
+      '-x264opts no-scenecut',
     ]);
 
     ffmpeg
@@ -99,6 +102,7 @@ class Restreamer {
           },
         });
         await this.setRestreamerStatus( restreamerId, 'STARTING' );
+        SocketClient.onRestreamStart( user );
       })
 
       .on( 'end', async () => {
@@ -109,21 +113,24 @@ class Restreamer {
       })
 
       .on( 'error', async ( error, stdout, stderr ) => {
-        restreamLogger.error( chalk.redBright( `Restreaming error!` ) );
         console.log( error );
         console.log( stdout );
         console.log( stderr );
 
-        this.removeRestream( restreamerId );
         if ( error.message.includes('SIGKILL') ) {
+          restreamLogger.error( chalk.redBright( `Restreaming stopped!` ) );
           await this.setRestreamerStatus( restreamerId, 'STOPPED' );
         } else {
+          restreamLogger.error( chalk.redBright( `Restreaming error!` ) );
           await this.setRestreamerStatus( restreamerId, 'ERROR' );
         }
-        // retry
+
+        this.removeRestream( restreamerId );
+        SocketClient.onRestreamEnd( user );
       })
 
       .on( 'data', async data => {
+        console.log( `Restream Data:` );
         console.log( data );
       })
 
@@ -139,7 +146,7 @@ class Restreamer {
           bitRate: progress.currentKbps,
           time: progress.timemark,
         };
-        // console.log(`${progress.frames} FPS:${progress.currentFps} ${(progress.currentKbps / 1000).toFixed(1)}Mbps - ${progress.timemark}`);
+        SocketClient.onRestreamUpdate( user, progress );
       });
 
     ffmpeg.run();

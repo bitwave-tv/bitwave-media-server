@@ -10,7 +10,7 @@ import logger from '../../classes/Logger';
 const apiLogger = logger( 'APIv1' );
 
 import { streamAuth } from '../../classes/StreamAuth';
-const streamauth = streamAuth({
+export const streamauth = streamAuth({
   hostServer : process.env['BMS_SERVER'] || 'stream.bitrave.tv',
   cdnServer  : process.env['BMS_CDN']    || 'cdn.stream.bitrave.tv',
 });
@@ -55,6 +55,7 @@ const router = Router();
  */
 router.post(
   '/stream/authorize',
+
   async ( req, res ) => {
     const app  = req.body.app;
     const name = req.body.name;
@@ -69,76 +70,85 @@ router.post(
     const streamer = serverData.getStreamer( name );
     if ( streamer ) {
       apiLogger.error( 'Streamer is already connected! denying new connection' );
-      return res.status( 500 ).send( `[${name}] Failed to start HLS ffmpeg process` );
+      return res.status( 500 ).send( `[${chalk.cyanBright.bold(name)}] Failed to start HLS ffmpeg process` );
     }
 
     // The following code only runs on the live endpoint
     // and requires both a name & key to authorize publish
-    if ( !name || !key ) {
-      apiLogger.error( `Stream authorization missing name or key` );
-      return res.status( 422 ).send(`Authorization needs bother name and key`);
+    if ( !name ) {
+      apiLogger.error( `Stream authorization missing username.` );
+      return res.status( 422 ).send(`Authorization missing username.`);
+    }
+    if ( !key ) {
+      apiLogger.error( `[${name}] Stream authorization missing key` );
+      return res.status( 422 ).send(`[${chalk.cyanBright.bold(name)}] Authorization missing key`);
     }
 
     // Verify stream key
     const checkKey: boolean = await streamauth.checkStreamKey ( name, key );
 
-    if ( checkKey ) {
-      // We are authorized
-
-      // Relay stream to HLS endpoint
-      const relaySuccessful: boolean = hlsRelay.startRelay( name );
-
-      // Verify we were able to start the HLS ffmpeg process
-      if ( !relaySuccessful ) {
-        apiLogger.error( `Failed to start HLS relay` );
-        return res.status( 500 ).send( `[${name}] Failed to start HLS ffmpeg process` );
-      }
-
-      // If authorized, pre-fetch archive status
-      const checkArchive: boolean = await streamauth.checkArchive( name );
-
-      // Wait for a few seconds before updating state and starting archive
-      const timer: Timeout = setTimeout( async () => {
-
-        // Update live status
-        await streamauth.setLiveStatus( name, true );
-
-        // Check if we should archive stream
-        if ( !checkArchive ) {
-          apiLogger.info( `Archiving is disabled for ${chalk.cyanBright.bold(name)}` );
-          return;
-        }
-
-        // Start stream archive
-        const attempts = 3;
-        let response;
-        for ( let i: number = 0; i <= attempts; i++ ) {
-          response = await rp( `${host}/${control}/record/start?app=live&name=${name}&rec=archive` );
-          if ( !response ) {
-            await new Promise( resolve => setTimeout( resolve, 1000 * 10 ) );
-            apiLogger.info( `${chalk.redBright('Failed to start archive')}, attempting again in 10 seconds (${i}/${attempts})` );
-            if ( i === attempts ) apiLogger.info( `${chalk.redBright('Giving up on archive.')} (out of attempts)` );
-          } else {
-            apiLogger.info( `Archiving ${chalk.cyanBright.bold(name)} to ${chalk.greenBright(response)}` );
-            await streamauth.saveArchive( name, response );
-            break;
-          }
-        }
-      }, updateDelay * 1000 );
-
-      liveTimers.push({
-        user: name,
-        timer: timer,
-      });
-
-      res
-        .status( 200 )
-        .send( `${name} authorized.` );
-    } else {
-      res
+    if ( !checkKey ) {
+      return res
         .status( 403 )
         .send( `${name} denied.` );
     }
+
+    /**
+     * Respond as quickly as possible to the client while
+     * the server continues to process the connection.
+     */
+    // We are authorized
+    res
+      .status( 200 )
+      .send( `${name} authorized.` );
+
+
+    // Relay stream to HLS endpoint
+    const relaySuccessful: boolean = await hlsRelay.startRelay( name );
+
+    // Verify we were able to start the HLS ffmpeg process
+    if ( !relaySuccessful ) {
+      apiLogger.error( `[${name}] Failed to start HLS relay` );
+      return;
+    }
+
+    // If authorized, pre-fetch archive status
+    const checkArchive: boolean = await streamauth.checkArchive( name );
+
+    // Wait for a few seconds before updating state and starting archive
+    const timer: Timeout = setTimeout( async () => {
+
+      // Update live status
+      await streamauth.setLiveStatus( name, true );
+
+      // Check if we should archive stream
+      if ( !checkArchive ) {
+        apiLogger.info( `Archiving is disabled for ${chalk.cyanBright.bold(name)}` );
+        return;
+      }
+
+      // Start stream archive
+      const attempts = 3;
+      let response;
+      for ( let i: number = 0; i <= attempts; i++ ) {
+        response = await rp( `${host}/${control}/record/start?app=live&name=${name}&rec=archive` );
+        if ( !response ) {
+          await new Promise( resolve => setTimeout( resolve, 1000 * 10 ) );
+          apiLogger.info( `${chalk.redBright('Failed to start archive')}, attempting again in 10 seconds (${i}/${attempts})` );
+          if ( i === attempts ) apiLogger.info( `${chalk.redBright('Giving up on archive.')} (out of attempts)` );
+        } else {
+          apiLogger.info( `Archiving ${chalk.cyanBright.bold(name)} to ${chalk.greenBright(response)}` );
+          await streamauth.saveArchive( name, response );
+          break;
+        }
+      }
+    }, updateDelay * 1000 );
+
+    liveTimers.push({
+      user: name,
+      timer: timer,
+    });
+
   },
 );
 
@@ -148,6 +158,7 @@ router.post(
  */
 router.post(
   '/stream/publish',
+
   async ( req, res ) => {
     const app  = req.body.app;  // Always HLS
     const name = req.body.name; // Stream name
@@ -160,7 +171,11 @@ router.post(
         apiLogger.info(`[${app}] ${chalk.cyanBright.bold(name)} is now ${chalk.greenBright.bold('sending notification request')}.`);
         // Send notifications
         const options = { form: { streamer: name } };
-        await rp.post( 'https://api.bitwave.tv/api/notification/live', options );
+        try {
+          await rp.post( 'https://api.bitwave.tv/api/notification/live', options );
+        } catch ( error ) {
+          console.error( error.message );
+        }
       }, notificationDelay * 1000 );
 
       notificationTimers.push({
@@ -180,6 +195,7 @@ router.post(
  */
 router.post(
   '/stream/end',
+
   async ( req, res ) => {
     const app  = req.body.app;
     const name = req.body.name;
@@ -188,20 +204,18 @@ router.post(
     if ( app === 'live' ) {
 
       // Prevent live timers from firing if we go offline
-      liveTimers.map( val => {
-        if ( val.user === name )
-          clearTimeout( val.timer );
-        else
-          return val;
-      });
+      liveTimers = liveTimers
+        .filter( val => {
+          if ( val.user.toLowerCase() === name.toLowerCase() ) clearTimeout( val.timer );
+          else return val;
+        });
 
       // Prevent notifications timers from firing if we go offline too soon
-      notificationTimers.map( val => {
-        if ( val.user === name )
-          clearTimeout( val.timer );
-        else
-          return val;
-      });
+      notificationTimers = notificationTimers
+        .filter( val => {
+          if ( val.user.toLowerCase() === name.toLowerCase() ) clearTimeout( val.timer );
+          else return val;
+        });
 
       // Set offline status
       await streamauth.setLiveStatus( name, false );
@@ -218,6 +232,7 @@ router.post(
  */
 router.post(
   '/stream/transcode/publish',
+
   async ( req, res ) => {
     const user = req.body.user;
     const app  = req.body.app;
@@ -225,7 +240,7 @@ router.post(
 
     if ( user ) {
       const timer: Timeout = setTimeout( async () => {
-        await streamauth.setTranscodeStatus( user, true );
+        await streamauth.setTranscodeStatus( user, true, app );
         apiLogger.info(`[${app}] ${chalk.cyanBright.bold(user)} is now ${chalk.greenBright.bold('transcoded')}.`);
       }, updateDelay * 1000 );
 
@@ -245,6 +260,7 @@ router.post(
  */
 router.post(
   '/stream/transcode/end',
+
   async ( req, res ) => {
     const user = req.body.user;
     const app  = req.body.app;
@@ -299,6 +315,8 @@ router.post(
 
   async ( req, res ) => {
     const user = req.body.user;
+    const enable144p = req.body.enable144p ?? false;
+    const enable480p = req.body.enable480p ?? true;
 
     // Attempt to get case sensitive username
     let streamer = serverData.getStreamer( user );
@@ -311,7 +329,7 @@ router.post(
 
     // User found - Start transcoding
     apiLogger.info( `${chalk.cyanBright.bold( streamer )} will be transcoded... Starting transcoders...` );
-    transcoder.startTranscoder( streamer );
+    transcoder.startTranscoder( streamer, enable144p, enable480p );
 
     res.send( `${streamer} is now being transcoded.` );
   },
@@ -676,7 +694,7 @@ router.get(
     if ( !data ) return res.status( 404 ).send( 'Error: streamer not found' );
 
     // Update streamer's data
-    serverData.updateStreamer( streamer );
+    // serverData.updateStreamer( streamer ); // Prevent potential DDoS
 
     // Send results
     res.send( data );

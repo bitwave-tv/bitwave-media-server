@@ -3,6 +3,7 @@
  * @copyright 2019 [bitwave.tv]
  * @license GPL-3.0
  */
+
 'use strict';
 
 // express
@@ -28,6 +29,7 @@ import api from './api';
 
 // middleware
 import expressLogger from '../webserver/middleware/expressLogger';
+import { Server } from 'http';
 
 /**
  * Class for the bitwave media server, powered by express.js
@@ -35,6 +37,8 @@ import expressLogger from '../webserver/middleware/expressLogger';
 class BitwaveMediaServer {
   private readonly app: Express;
   private readonly __public: string;
+
+  public server: Server;
 
   /**
    * constructs a new express app with prod or dev config
@@ -128,10 +132,10 @@ class BitwaveMediaServer {
     const deferred = Q.defer();
     nodeLogger.info ( 'Starting Node.js API server . . .' );
     this.app.set( 'port', process.env.BMS_NODEJS_PORT );
-    const server = this.app.listen ( this.app.get ( 'port' ), () => {
-      this.app.set ( 'server', server.address() );
+    this.server = this.app.listen ( this.app.get ( 'port' ), () => {
+      this.app.set ( 'server', this.server.address() );
       nodeLogger.info( `Node.js API server running on ${process.env.BMS_NODEJS_PORT}` );
-      deferred.resolve( (server.address() as AddressInfo).port );
+      deferred.resolve( (this.server.address() as AddressInfo).port );
     });
     return deferred.promise;
   }
@@ -175,4 +179,4 @@ class BitwaveMediaServer {
   }
 }
 
-export const bitwaveMediaServer = publicDir => new BitwaveMediaServer(publicDir);
+export const bitwaveMediaServer = publicDir => new BitwaveMediaServer( publicDir );
