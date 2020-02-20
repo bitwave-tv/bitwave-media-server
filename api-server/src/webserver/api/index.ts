@@ -764,6 +764,15 @@ router.post(
     const mode = 'drop', type = 'publisher', app  = 'live';
     const response = await rp( `${host}/${control}/${mode}/${type}?app=${app}&name=${name || user}` );
 
+    if ( JSON.parse( response ) === 0 ) {
+      apiLogger.info( `${name} user appears to be stuck...` );
+
+      // Set offline status
+      await streamauth.setLiveStatus( name, false );
+
+      apiLogger.info( `${name} forced ${chalk.redBright('OFFLINE')}...` );
+    }
+
     // Log results
     apiLogger.info( `Drop ${name} result: ${response}` );
 
