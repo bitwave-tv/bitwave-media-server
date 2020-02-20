@@ -1,7 +1,7 @@
 // Created by xander on 10/30/2019
 
 'use strict';
-import {Request, Router} from 'express';
+import { Request, Router } from 'express';
 import * as chalk from 'chalk';
 import * as rp from 'request-promise';
 import Timeout = NodeJS.Timeout;
@@ -42,7 +42,7 @@ let liveTimers: ILiveTimer[] = [];
 const updateDelay: number    = 10; // 10 seconds
 
 let notificationTimers: ILiveTimer[] = [];
-const notificationDelay: number     = 60; // 60 seconds
+const notificationDelay: number      = 60; // 60 seconds
 
 const router = Router();
 
@@ -70,18 +70,24 @@ router.post(
     const streamer = serverData.getStreamer( name );
     if ( streamer ) {
       apiLogger.error( 'Streamer is already connected! denying new connection' );
-      return res.status( 500 ).send( `[${chalk.cyanBright.bold(name)}] Failed to start HLS ffmpeg process` );
+      return res
+        .status( 500 )
+        .send( `[${chalk.cyanBright.bold(name)}] Failed to start HLS ffmpeg process` );
     }
 
     // The following code only runs on the live endpoint
     // and requires both a name & key to authorize publish
     if ( !name ) {
       apiLogger.error( `Stream authorization missing username.` );
-      return res.status( 422 ).send(`Authorization missing username.`);
+      return res
+        .status( 422 )
+        .send(`Authorization missing username.`);
     }
     if ( !key ) {
       apiLogger.error( `[${name}] Stream authorization missing key` );
-      return res.status( 422 ).send(`[${chalk.cyanBright.bold(name)}] Authorization missing key`);
+      return res
+        .status( 422 )
+        .send(`[${chalk.cyanBright.bold(name)}] Authorization missing key`);
     }
 
     // Verify stream key
@@ -745,8 +751,8 @@ router.post(
 
   async ( req, res ) => {
     // Get data from body with backwards compatibility
-    const user = req.body.user;
-    const token    = req.body.token;
+    const user  = req.body.user;
+    const token = req.body.token;
 
     // Get exact streamer endpoint
     const name = serverData.getStreamer( user );
