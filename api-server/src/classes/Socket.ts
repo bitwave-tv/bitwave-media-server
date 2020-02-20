@@ -1,6 +1,9 @@
 
 import * as socketio from 'socket.io-client';
 
+import logger from '../classes/Logger';
+const socketLogger = logger('SCKET');
+
 class APISocket {
   private socket: SocketIOClient.Socket;
   private readonly server: string;
@@ -20,7 +23,7 @@ class APISocket {
 
   onServerConnect () {
     this.connected = true;
-    console.log( `Ingestion server connected to API server socket.` );
+    socketLogger.info( `Ingestion server connected to API server socket.` );
   }
 
   onServerDisconnect () {
@@ -36,7 +39,7 @@ class APISocket {
     };
 
     this.socket.emit( 'ingestion.streamer.connect', data );
-    console.log( `${streamer} connecting to API server socket` );
+    socketLogger.info( `${streamer} connecting to API server socket` );
   }
 
   onUpdate ( streamer, stats ) {
@@ -59,7 +62,7 @@ class APISocket {
     };
 
     this.socket.emit( 'ingestion.restreamer.connect', data );
-    console.log( `${streamer} restreamer has connected` );
+    socketLogger.info( `${streamer} restreamer has connected` );
   }
 
   onRestreamUpdate ( streamer, stats ) {
@@ -82,7 +85,7 @@ class APISocket {
     };
 
     this.socket.emit( 'ingestion.restreamer.disconnect', data );
-    console.log( `${streamer} restreamer has disconnected` );
+    socketLogger.info( `${streamer} restreamer has disconnected` );
   }
 
   onDisconnect( streamer ) {
@@ -94,7 +97,7 @@ class APISocket {
     };
 
     this.socket.emit( 'ingestion.streamer.disconnect', data );
-    console.log( `${streamer} disconnecting API server socket` );
+    socketLogger.info( `${streamer} disconnecting API server socket` );
   }
 
 }
