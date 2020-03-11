@@ -193,12 +193,12 @@ class ArchiveManager {
     // Delete local mp4 file
     console.log( `Delete transmuxed mp4 file on local server...` );
 
-    // Delete source FLV file
+    // Delete source mp4 file
     try {
-      await fsp.unlink( file );
-      console.log( chalk.greenBright( `${file} deleted.` ) );
+      await fsp.unlink( transmuxFile );
+      console.log( chalk.greenBright( `${transmuxFile} deleted.` ) );
     } catch ( error ) {
-      console.log( chalk.redBright( `Archive source flv delete failed... This is bad..` ) );
+      console.log( chalk.redBright( `Archive source mp4 delete failed... This is bad..` ) );
       console.log( error );
     }
 

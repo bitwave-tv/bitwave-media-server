@@ -24,7 +24,7 @@ class StackpathS3 {
 
   constructor( config ) {
     this.s3 = new AWS.S3( config );
-    this.bucket = config.bucket;
+    this.bucket = config.params.Bucket;
   }
 
   // List buckets
