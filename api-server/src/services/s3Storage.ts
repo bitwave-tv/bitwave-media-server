@@ -46,7 +46,7 @@ class StackpathS3 {
     const filename = path.basename( fileLocation );
 
     const data = fs.createReadStream( fileLocation )
-      .pipe( zlib.createGzip() );
+      // .pipe( zlib.createGzip() );
 
     // Upload a file
     const params: S3.PutObjectRequest = {
@@ -74,7 +74,7 @@ class StackpathS3 {
   async upload ( fileLocation: string )  {
     const filename = `replay/${path.basename( fileLocation )}`;
     const data = fs.createReadStream( fileLocation )
-      .pipe( zlib.createGzip() );
+      // .pipe( zlib.createGzip() );
 
     // Upload a file
     const params: S3.PutObjectRequest = {
