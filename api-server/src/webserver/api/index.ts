@@ -144,7 +144,7 @@ router.post(
           if ( i === attempts ) apiLogger.info( `${chalk.redBright('Giving up on archive.')} (out of attempts)` );
         } else {
           apiLogger.info( `Archiving ${chalk.cyanBright.bold(name)} to ${chalk.greenBright(response)}` );
-          await streamauth.saveArchive( name, response );
+          // await streamauth.saveArchive( name, response );
           break;
         }
       }
@@ -713,6 +713,27 @@ router.get(
  * Archive Commands
  */
 
+// Convert flv -> mp4 and save to database
+router.post(
+  '/archive/end',
+
+  async ( req, res ) => {
+    const name = req.body.name;
+    const path = req.body.path;
+
+    console.log( `Archive for ${name} saved to ${path}. Converting to MP4...` );
+
+    const result = await archiver.transmuxArchive( path, name );
+
+    console.log( `Archive is ${(result.duration / 60).toFixed(2)} minutes long` );
+
+    await streamauth.saveArchive( name, result.file );
+
+    res.send();
+  },
+);
+
+// Delete archive file & reference
 router.delete(
   '/archive/:archiveId',
 

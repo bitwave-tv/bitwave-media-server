@@ -1,6 +1,6 @@
 {
   "name": "bitwave-media-server",
-  "version": "1.6.1",
+  "version": "1.7.0-beta7",
   "description": "bitwave media server",
   "main": "src/index.js",
   "scripts": {
@@ -24,6 +24,7 @@
   },
   "homepage": "https://github.com/bitwave-tv/bitwave-media-server#readme",
   "dependencies": {
+    "aws-sdk": "^2.637.0",
     "body-parser": "^1.19.0",
     "cfonts": "^2.4.5",
     "chalk": "^3.0.0",
