@@ -12,6 +12,7 @@ interface IArchiveTransmuxed {
   file: string;
   type: 'flv'|'mp4';
   duration: number;
+  thumbnails: string[];
 }
 
 class ArchiveManager {
@@ -57,7 +58,7 @@ class ArchiveManager {
   }
 
   async transmuxArchive ( file: string, channel: string ):Promise<IArchiveTransmuxed> {
-    const transmuxAsync = ( file: string ):Promise<string> =>  new Promise( ( res, reject ) => {
+    const transmuxAsync = ( file: string ):Promise<string> => new Promise( ( res, reject ) => {
       // Change flv to mp4
       const outFile = file.replace( /\.flv$/i, '.mp4' );
 
@@ -122,6 +123,48 @@ class ArchiveManager {
       });
     });
 
+    const generateScreenshots = ( file: string, screenshots: number ):Promise<string[]> => new Promise ( (res, reject) => {
+
+      const ffmpeg = FfmpegCommand();
+      ffmpeg.input( file );
+      ffmpeg.inputOptions([
+        '-err_detect ignore_err',
+        '-ignore_unknown',
+        '-stats',
+      ]);
+
+      ffmpeg.screenshots({
+        count: screenshots,
+        filename: '%b_%0i.png',
+        // size: '640x360',
+      });
+
+      ffmpeg
+        .on('filenames', ( filenames: string[] ) => {
+          console.log( `Generated ${filenames.length}/${screenshots} screenshots: ${filenames.join(', ')}` );
+          return res ( filenames );
+        })
+
+
+        .on('end', ( stdout, stderr ) => {
+          console.log( chalk.greenBright(`Finished generating ${screenshots} screenshots.`) );
+        })
+
+        .on( 'error', ( error, stdout, stderr ) => {
+          console.log( chalk.redBright(`Error generating screenshots.`) );
+
+          console.log( error );
+          console.log( stdout );
+          console.log( stderr );
+
+          return reject( error );
+        });
+
+      ffmpeg.run();
+    });
+
+
+    // Transmux FLV -> mp4
     let transmuxFile = null;
     try {
       transmuxFile = await transmuxAsync( file );
@@ -132,6 +175,7 @@ class ArchiveManager {
         file: file,
         type: 'flv',
         duration: 0,
+        thumbnails: null,
       };
     }
 
@@ -141,8 +185,10 @@ class ArchiveManager {
         file: file,
         type: 'flv',
         duration: 0,
+        thumbnails: null,
       };
     }
+
 
     // Probe resulting mp4
     let transmuxData = null;
@@ -155,6 +201,7 @@ class ArchiveManager {
         file: file,
         type: 'flv',
         duration: 0,
+        thumbnails: null,
       };
     }
 
@@ -164,8 +211,20 @@ class ArchiveManager {
         file: file,
         type: 'flv',
         duration: 0,
+        thumbnails: null,
       };
     }
+
+
+    // Generate screenshots from mp4
+    let thumbnails = [];
+    try {
+      thumbnails = await generateScreenshots( transmuxFile, 10 );
+    } catch ( error ) {
+      console.log( `Thumbnail generation failed!` );
+      thumbnails = null;
+    }
+
 
     console.log( `Delete source FLV file...` );
 
@@ -184,11 +243,47 @@ class ArchiveManager {
     console.log( `Get S3 debug info...` );
     await stackpaths3.listBuckets();
 
-    // S3 Upload
+
+    // S3 Upload thumbnails
+    let s3Thumbnails: string[] = [];
+    if ( thumbnails && thumbnails.length > 0 ) {
+      console.log( `Uploading thumbnails to S3 bucket...` );
+
+      // Upload thumbnails to S3
+      try {
+        s3Thumbnails = await Promise.all(
+          thumbnails.map( async thumbnail => {
+            return await stackpaths3.uploadImage( thumbnail );
+          } )
+        );
+      } catch ( error ) {
+        console.log( chalk.redBright( `Thumbnail upload failed... This is probably bad..` ) );
+        console.log( error );
+      }
+
+      // Delete local thumbnail files
+      console.log( `Delete thumbnails on local server...` );
+
+      // Delete thumbnails
+      try {
+        await Promise.all(
+          thumbnails.map( async thumbnail => {
+            await fsp.unlink( thumbnail );
+            console.log( chalk.greenBright( `${thumbnail} deleted.` ) );
+          })
+        );
+      } catch ( error ) {
+        console.log( chalk.redBright( `Thumbnail delete failed... This is probably bad..` ) );
+        console.log( error );
+      }
+    } else {
+      s3Thumbnails = null;
+    }
+
+
+    // S3 Upload video
     console.log( `Upload to S3 bucket...` );
     const s3FileLocation = await stackpaths3.upload( transmuxFile );
-
-
 
     // Delete local mp4 file
     console.log( `Delete transmuxed mp4 file on local server...` );
@@ -207,6 +302,7 @@ class ArchiveManager {
       file: s3FileLocation,
       type: 'mp4',
       duration: transmuxData.video.duration,
+      thumbnails: s3Thumbnails,
     };
   }
 

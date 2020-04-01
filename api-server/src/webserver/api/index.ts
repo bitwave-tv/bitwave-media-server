@@ -412,7 +412,7 @@ router.post(
       apiLogger.info(`${chalk.redBright('Failed to start archive')}, please try again.`);
     } else {
       apiLogger.info(`Archiving ${chalk.cyanBright.bold(streamer)} to ${chalk.greenBright(response)}`);
-      await streamauth.saveArchive( streamer, response );
+      // await streamauth.saveArchive( streamer, response );
     }
 
     res.status( 200 ).send( !!response ? response : `${streamer} failed to start archive` );
@@ -713,7 +713,7 @@ router.get(
  * Archive Commands
  */
 
-// Convert flv -> mp4 and save to database
+// Convert flv -> mp4, generate thumbnails, and save to database
 router.post(
   '/archive/end',
 
@@ -721,13 +721,13 @@ router.post(
     const name = req.body.name;
     const path = req.body.path;
 
-    console.log( `Archive for ${name} saved to ${path}. Converting to MP4...` );
+    console.log( `Archive for ${name} saved to ${path}. Converting to MP4 and generating thumbnails...` );
 
     const result = await archiver.transmuxArchive( path, name );
 
-    console.log( `Archive is ${(result.duration / 60).toFixed(2)} minutes long` );
+    console.log( `Archive is ${( result.duration / 60 ).toFixed( 2 )} minutes long` );
 
-    await streamauth.saveArchive( name, result.file );
+    await streamauth.saveArchive( name, result.file, result.duration, result.thumbnails );
 
     res.send();
   },

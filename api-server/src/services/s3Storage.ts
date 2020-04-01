@@ -3,7 +3,7 @@
 import * as fs from 'fs';
 const fsp = fs.promises;
 
-import * as zlib from 'zlib';
+// import * as zlib from 'zlib';
 import * as path from 'path';
 
 import * as AWS from 'aws-sdk';
@@ -73,8 +73,7 @@ class StackpathS3 {
   // Upload file (multipart)
   async upload ( fileLocation: string )  {
     const filename = `replay/${path.basename( fileLocation )}`;
-    const data = fs.createReadStream( fileLocation )
-      // .pipe( zlib.createGzip() );
+    const data = fs.createReadStream( fileLocation );
 
     // Upload a file
     const params: S3.PutObjectRequest = {
@@ -92,6 +91,35 @@ class StackpathS3 {
 
       console.log( result );
       console.log( `location: ${result.Location}` );
+      return result.Location;
+    } catch ( error ) {
+      console.error(  error.message );
+    }
+
+  }
+
+
+  // Upload thumbnail image (multipart)
+  async uploadImage ( fileLocation: string )  {
+    const filename = `replay/thumbnails/${path.basename( fileLocation )}`;
+    const data = fs.createReadStream( fileLocation );
+
+    // Upload a file
+    const params: S3.PutObjectRequest = {
+      Bucket: this.bucket,
+      Key: filename,
+      Body: data,
+      ContentType: 'image/png',
+      ACL: 'public-read',
+    };
+
+    try {
+      const result = await this.s3
+        .upload( params )
+        .promise();
+
+      console.log( result );
+      console.log( `Image location: ${result.Location}` );
       return result.Location;
     } catch ( error ) {
       console.error(  error.message );

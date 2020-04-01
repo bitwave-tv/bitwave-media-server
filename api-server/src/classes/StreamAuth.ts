@@ -186,9 +186,11 @@ class StreamAuth {
    * Passes archive information to API server
    * @param {string} username
    * @param {string} location
+   * @param {number} duration
+   * @param {Array<string>} thumbnails
    * @return {Promise<void>}
    */
-  async saveArchive ( username: string, location: string ): Promise<void> {
+  async saveArchive ( username: string, location: string, duration: number, thumbnails: string[] ): Promise<void> {
     const options = {
       headers: {
         'content-type': 'application/x-www-form-urlencoded',
@@ -197,11 +199,13 @@ class StreamAuth {
         server: this.hostServer,
         username: username,
         location: location,
+        duration: duration,
+        thumbnails: thumbnails,
       },
     };
 
     try {
-      const response = await rp.post( 'https://api.bitwave.tv/api/archives/add',  options );
+      const response = await rp.post( 'https://api.bitwave.tv/v1/archives',  options );
       log.info( response );
     } catch ( error ) {
       log.info( error );
