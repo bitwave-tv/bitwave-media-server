@@ -2,6 +2,7 @@
 
 import * as admin from 'firebase-admin';
 import { promises as fsp } from 'fs';
+import * as path from 'path';
 import * as chalk from 'chalk';
 import * as FfmpegCommand from 'fluent-ffmpeg';
 import { ffprobe } from 'fluent-ffmpeg';
@@ -124,30 +125,31 @@ class ArchiveManager {
     });
 
     const generateScreenshots = ( file: string, screenshots: number ):Promise<string[]> => new Promise ( (res, reject) => {
+      const folder = path.dirname( file );
 
-      const ffmpeg = FfmpegCommand();
-      ffmpeg.input( file );
-      ffmpeg.inputOptions([
-        '-err_detect ignore_err',
-        '-ignore_unknown',
-        '-stats',
-      ]);
+      let filenames = null;
 
-      ffmpeg.screenshots({
-        count: screenshots,
-        filename: '%b_%0i.png',
-        // size: '640x360',
-      });
+      const ffmpeg = FfmpegCommand( file )
 
-      ffmpeg
-        .on('filenames', ( filenames: string[] ) => {
-          console.log( `Generated ${filenames.length}/${screenshots} screenshots: ${filenames.join(', ')}` );
-          return res ( filenames );
+        .screenshots({
+          count: screenshots,
+          filename: '%b_%0i.png',
+          folder: folder,
+          // size: '640x360',
         })
 
+        .on('filenames', ( outputFilenames: string[] ) => {
+          filenames = outputFilenames.map( f => `${folder}/${f}` );
+        })
 
+        .on('start', command => {
+          console.log( chalk.greenBright(`Starting thumbnail generation.`) );
+          // console.log( command );
+        })
         .on('end', ( stdout, stderr ) => {
           console.log( chalk.greenBright(`Finished generating ${screenshots} screenshots.`) );
+          console.log( `Generated ${filenames.length}/${screenshots} screenshots:\n${filenames.join('\n')}` );
+          return res ( filenames );
         })
 
         .on( 'error', ( error, stdout, stderr ) => {
@@ -160,7 +162,11 @@ class ArchiveManager {
           return reject( error );
         });
 
-      ffmpeg.run();
+      /*ffmpeg.inputOptions([
+        '-err_detect ignore_err',
+        '-ignore_unknown',
+        '-stats',
+      ]);*/
     });
 
 
@@ -169,23 +175,23 @@ class ArchiveManager {
     try {
       transmuxFile = await transmuxAsync( file );
     } catch ( error ) {
-      console.log( `Archive transmux failed... Bailing early.` );
+      console.log( chalk.redBright( `Archive transmux failed... Bailing early.` ) );
       console.log( error );
       return {
         file: file,
         type: 'flv',
         duration: 0,
-        thumbnails: null,
+        thumbnails: [],
       };
     }
 
     if ( !transmuxFile ) {
-      console.log( `Archive transmux failed... Bailing early.` );
+      console.log( chalk.redBright( `Archive transmux failed... Bailing early.` ) );
       return {
         file: file,
         type: 'flv',
         duration: 0,
-        thumbnails: null,
+        thumbnails: [],
       };
     }
 
@@ -195,13 +201,13 @@ class ArchiveManager {
     try {
       transmuxData = await probeTransmuxedFile( transmuxFile );
     } catch ( error ) {
-      console.log( `Archive transmux probe failed... Bailing early.` );
+      console.log( chalk.redBright( `Archive transmux probe failed... Bailing early.` ) );
       console.log( error );
       return {
         file: file,
         type: 'flv',
         duration: 0,
-        thumbnails: null,
+        thumbnails: [],
       };
     }
 
@@ -211,7 +217,7 @@ class ArchiveManager {
         file: file,
         type: 'flv',
         duration: 0,
-        thumbnails: null,
+        thumbnails: [],
       };
     }
 
@@ -221,8 +227,9 @@ class ArchiveManager {
     try {
       thumbnails = await generateScreenshots( transmuxFile, 10 );
     } catch ( error ) {
-      console.log( `Thumbnail generation failed!` );
-      thumbnails = null;
+      console.log( chalk.redBright( `Thumbnail generation failed!` ) );
+      console.log( error );
+      thumbnails = [];
     }
 
 
@@ -282,7 +289,7 @@ class ArchiveManager {
 
 
     // S3 Upload video
-    console.log( `Upload to S3 bucket...` );
+    console.log( `Upload mp4 to S3 bucket...` );
     const s3FileLocation = await stackpaths3.upload( transmuxFile );
 
     // Delete local mp4 file

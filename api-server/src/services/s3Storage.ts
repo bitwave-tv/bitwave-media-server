@@ -89,8 +89,8 @@ class StackpathS3 {
         .upload( params )
         .promise();
 
-      console.log( result );
-      console.log( `location: ${result.Location}` );
+      // console.log( result );
+      console.log( `Video location: ${result.Location}` );
       return result.Location;
     } catch ( error ) {
       console.error(  error.message );
@@ -118,11 +118,11 @@ class StackpathS3 {
         .upload( params )
         .promise();
 
-      console.log( result );
+      // console.log( result );
       console.log( `Image location: ${result.Location}` );
       return result.Location;
     } catch ( error ) {
-      console.error(  error.message );
+      console.error(  `Upload failed: ${error.message}` );
     }
 
   }
