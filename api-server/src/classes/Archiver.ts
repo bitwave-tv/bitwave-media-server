@@ -77,6 +77,8 @@ class ArchiveManager {
         '-codec:v copy', // Video (copy)
       ]);
 
+      ffmpeg.renice( 5 );
+
       ffmpeg
         .on('start', command => {
           console.log( chalk.greenBright(`Starting archive transmux.`) );
@@ -124,11 +126,11 @@ class ArchiveManager {
       });
     });
 
-    const generateScreenshots = ( file: string, screenshots: number ):Promise<string[]> => new Promise ( (res, reject) => {
+    const generateScreenshots = ( file: string, screenshots: number ):Promise<string[]> => new Promise ( async (res, reject) => {
+
+      // This was too slow
+      /*let filenames = null;
       const folder = path.dirname( file );
-
-      let filenames = null;
-
       const ffmpeg = FfmpegCommand( file )
 
         .screenshots({
@@ -144,7 +146,7 @@ class ArchiveManager {
 
         .on('start', command => {
           console.log( chalk.greenBright(`Starting thumbnail generation.`) );
-          // console.log( command );
+          console.log( command );
         })
         .on('end', ( stdout, stderr ) => {
           console.log( chalk.greenBright(`Finished generating ${screenshots} screenshots.`) );
@@ -161,12 +163,94 @@ class ArchiveManager {
 
           return reject( error );
         });
+        */
 
       /*ffmpeg.inputOptions([
         '-err_detect ignore_err',
         '-ignore_unknown',
         '-stats',
       ]);*/
+
+
+
+
+      const takeScreenshots = ( file, count ): Promise<string[]> => {
+        const folder = path.dirname( file );
+        // Take single screenshot, hopefully with the seek ffmpeg command
+        const takeSingleScreenshot = async ( file, timestamp, index ) => {
+          return await new Promise( ( res, reject ) => {
+            let filename = null;
+            const ffmpeg = FfmpegCommand;
+            ffmpeg(file)
+              .renice( 5 )
+
+              .on("start", ( command ) => {
+                console.log(`[START] taking screenshot: ${index} at ${timestamp}`);
+                console.log( `[START] Screenshot command:`, command );
+              })
+
+              .on("end", () => {
+                console.log(`[END] screenshot #${index} at: ${timestamp} complete.`);
+                if ( filename ){
+                  return res( filename );
+                } else {
+                  console.error( `Missing screenshot filename!` );
+                  res( '' );
+                }
+              })
+
+              .screenshots({
+                count: 1,
+                timemarks: [timestamp],
+                filename: `%b_${index}.jpg`,
+                folder: folder,
+              })
+
+              .on('filenames', ( outputFilenames: string[] ) => {
+                console.log( `[FILES] Took screenshot:`, outputFilenames );
+                const filenames = outputFilenames.map( f => `${folder}/${f}` );
+                filename = filenames[0];
+              })
+
+              .on( 'error', ( error, stdout, stderr ) => {
+                console.log( chalk.redBright(`[ERROR] Error generating screenshots.`) );
+
+                console.log( error );
+                console.log( stdout );
+                console.log( stderr );
+
+                return reject( error );
+              });
+          });
+        }
+
+        // const count = 10;
+        const timestamps = [];
+        const startPositionPercent = 5;
+        const endPositionPercent = 95;
+        const addPercent = ( endPositionPercent - startPositionPercent ) / ( count - 1 );
+
+        for ( let i = 0; i < count; i++ ) {
+          const time = startPositionPercent + addPercent * i;
+          timestamps.push( `${time}%` );
+        }
+
+        return new Promise ( async ( res, reject ) => {
+          const files = [];
+          await Promise.all (
+            timestamps.map( async (timestamp, index) => {
+              const screenshotFile = await takeSingleScreenshot( file, timestamp, index );
+              files.push( screenshotFile );
+            })
+          );
+          res( files );
+        });
+      }
+
+      const screenshotFiles = await takeScreenshots( file, screenshots );
+      console.log( `Screenshots finished!\n`, screenshotFiles );
+
+      res( screenshotFiles );
     });
 
 

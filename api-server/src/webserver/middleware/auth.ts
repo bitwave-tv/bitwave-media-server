@@ -20,7 +20,7 @@ export const extractToken = ( req, res, next ) => {
       console.log( 'extracting auth token' );
       if ( req.headers.authorization && req.headers.authorization.split(' ')[0] === 'Bearer' )
         return req.headers.authorization.split(' ')[1];
-      else if ( req.query && req.query.token )
+      else if ( req.query.hasOwnProperty( 'token' ) && typeof req.query.token === 'string' )
         return req.query.token;
       return null;
     })( req );
