@@ -1,0 +1,69 @@
+version: '3'
+
+# Microservices
+services:
+
+  # NGINX-RTMP Server Configuration
+  nginx-server:
+    container_name: bms-nginx-server
+    image: bitwavetv/bms-nginx-server:dev # USING DEV IMAGE
+    # build: '../nginx-server'
+
+    ports:
+      - "8080:8080"
+      - "1935:1935"
+
+    networks:
+      internal:
+        aliases:
+          - bms-nginx-server
+          - nginx-server
+
+    # Mount archives & API creds #
+    # - MODIFY THESE LOCATIONS - #
+    volumes:
+      - /srv/archives:/archives
+      - /srv/creds:/bms-nginx-server/creds
+
+    environment:
+      - FORCE_COLOR=1
+      - BMS_ENV=dev
+      - BMS_LOGLEVEL=4
+      - BMS_TIMEZONE=America/Los_Angeles
+      - BMS_SERVER=stream.bitwave.tv      # MODIFY THIS
+      - BMS_CDN=cdn.stream.bitwave.tv     # MODIFY THIS
+
+
+  # API Server Configuration
+  api-server:
+    container_name: bms-api-server
+    image: bitwavetv/bms-api-server:dev # USING DEV IMAGE
+    # build: '../api-server'
+
+    ports:
+      - "3000:3000"
+
+    networks:
+      internal:
+        aliases:
+          - bms-api-server
+          - api-server
+
+    # Mount archives & API creds #
+    # - MODIFY THESE LOCATIONS - #
+    volumes:
+      - D:/srv/archives:/archives
+      - D:/srv/creds:/api-server/creds
+
+    environment:
+      - FORCE_COLOR=1
+      - BMS_ENV=dev
+      - BMS_LOGLEVEL=4
+      - BMS_TIMEZONE=America/Los_Angeles
+      - BMS_SERVER=stream.bitwave.tv      # MODIFY THIS
+      - BMS_CDN=cdn.stream.bitwave.tv     # MODIFY THIS
+
+
+# Network Definitions
+networks:
+  internal:
