@@ -69,10 +69,10 @@ router.post(
     // block new connections if user is already connected
     const streamer = serverData.getStreamer( name );
     if ( streamer ) {
-      apiLogger.error( 'Streamer is already connected! denying new connection' );
+      apiLogger.error( `Streamer '${name}' is already connected! Denying new connection.` );
       return res
         .status( 500 )
-        .send( `[${chalk.cyanBright.bold(name)}] Failed to start HLS ffmpeg process` );
+        .send( `Failed to start HLS ffmpeg process` );
     }
 
     // The following code only runs on the live endpoint
@@ -87,7 +87,7 @@ router.post(
       apiLogger.error( `[${name}] Stream authorization missing key` );
       return res
         .status( 422 )
-        .send(`[${chalk.cyanBright.bold(name)}] Authorization missing key`);
+        .send( `Missing authorization key` );
     }
 
     // Verify stream key

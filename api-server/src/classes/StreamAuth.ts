@@ -72,7 +72,7 @@ class StreamAuth {
    */
   async checkStreamKey ( username: string, key: string ): Promise<boolean> {
     if ( !key ) {
-      log.info( `${chalk.bgRedBright.black(' ERROR: ')} ${username} did not provide a streamkey.` );
+      log.info( `${chalk.bgRedBright.black(' ERROR: ')} ${username} did not provide a stream key.` );
       return false;
     }
 
@@ -83,7 +83,7 @@ class StreamAuth {
     }
 
     if ( key !== streamKey ) {
-      log.info( `${chalk.bgRedBright.black(' ERROR: ')} ${username} supplied an invalid streamkey` );
+      log.info( `${chalk.bgRedBright.black(' ERROR: ')} ${username} supplied an invalid stream key: '${key}'` );
       return false;
     }
 

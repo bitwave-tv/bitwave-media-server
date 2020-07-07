@@ -137,9 +137,9 @@ class StreamRelay {
       const TIMEOUT = 15;
 
       const timeout = setTimeout( () => {
-        relayLogger.error( chalk.redBright( `Timed out trying to prove '${endpoint}'` ) );
+        relayLogger.error( chalk.redBright( `Timed out while probing: '${endpoint}'` ) );
         reject('timeout');
-      }, TIMEOUT * 1000 );
+      }, TIMEOUT * 1000 * 2 );
 
       relayLogger.info(`Attempting to probe '${endpoint}'`);
 
@@ -151,8 +151,16 @@ class StreamRelay {
 
           const videoData = data.streams.find(stream => stream.codec_type === 'video' );
           if ( videoData ) {
-            const vBitrate = (parseFloat(videoData.bit_rate) / 1024 / 1024).toFixed(2);
-            relayLogger.info( `${videoData.codec_name} ${videoData.width}x${videoData.height} rFPS:${videoData.r_frame_rate} avgFPS:${videoData.avg_frame_rate} ${vBitrate}mb/s KeyFrame=${videoData.has_b_frames}` );
+            const vBitrate = parseFloat(videoData.bit_rate) / 1024 / 1024;
+            // Prevent exceptionally high bitrates
+            if ( vBitrate > 10 ) {
+              clearTimeout( timeout ); // Cancel timer
+              relayLogger.info( `${videoData.width}x${videoData.height} rFPS:${videoData.r_frame_rate} avgFPS:${videoData.avg_frame_rate} ${vBitrate.toFixed(2)}mb/s b_frames=${videoData.has_b_frames}` );
+              console.log( chalk.redBright( `Bitrate is too high! '${endpoint}': ${error.message}`) );
+              // Reject early to prevent abuse
+              return reject( 'Bitrate is too high!' );
+            }
+            relayLogger.info( `${videoData.codec_name} ${videoData.width}x${videoData.height} rFPS:${videoData.r_frame_rate} avgFPS:${videoData.avg_frame_rate} ${vBitrate.toFixed(2)}mb/s b_frames=${videoData.has_b_frames}` );
           } else {
             relayLogger.error( chalk.redBright('No video stream!') );
           }
