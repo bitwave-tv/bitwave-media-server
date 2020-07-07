@@ -4,10 +4,12 @@ FROM $IMAGE as builder
 
 MAINTAINER dispatch <admin@bitwave.tv>
 
+# setup envvironment variables
 ENV SRC="/usr/local/" \
     LD_LIBRARY_PATH="/usr/local/lib" \
     PKG_CONFIG_PATH="/usr/local/lib/pkgconfig"
 
+# update repos & install build tools
 RUN apt-get update && \
     apt-get install -y \
         # libraries
@@ -36,7 +38,6 @@ RUN apt-get update && \
 
 # nasm
 ARG NASM_VERSION=2.14.02
-
 RUN mkdir -p /dist && cd /dist && \
     curl -OL "https://www.nasm.us/pub/nasm/releasebuilds/${NASM_VERSION}/nasm-${NASM_VERSION}.tar.xz" && \
     tar -xvJ -f nasm-${NASM_VERSION}.tar.xz && \
@@ -47,13 +48,7 @@ RUN mkdir -p /dist && cd /dist && \
 
 
 # x264
-#
-# ARG X264_VERSION=20190409-2245-stable
-# curl -OL "http://ftp.videolan.org/pub/videolan/x264/snapshots/x264-snapshot-${X264_VERSION}.tar.bz2" && \
-# tar -xvj -f x264-snapshot-${X264_VERSION}.tar.bz2 && \
-# cd x264-snapshot-${X264_VERSION} && \
-#
-# https://code.videolan.org/videolan/x264/-/archive/stable/x264-stable.tar.bz2
+ARG X264_VERSION=20190409-2245-stable
 RUN mkdir -p /dist && cd /dist && \
     curl -OL "https://code.videolan.org/videolan/x264/-/archive/stable/x264-stable.tar.bz2" && \
     tar -xvj -f x264-stable.tar.bz2 && \
@@ -67,8 +62,7 @@ RUN mkdir -p /dist && cd /dist && \
 
 
 # x265
-ARG X265_VERSION=3.2.1
-
+ARG X265_VERSION=3.0
 RUN mkdir -p /dist && cd /dist && \
     curl -OL "http://ftp.videolan.org/pub/videolan/x265/x265_${X265_VERSION}.tar.gz" && \
     tar -xvz -f x265_${X265_VERSION}.tar.gz && \
@@ -80,7 +74,6 @@ RUN mkdir -p /dist && cd /dist && \
 
 # libmp3lame
 ARG LAME_VERSION=3.100
-
 RUN mkdir -p /dist && cd /dist && \
     curl -OL "https://downloads.sourceforge.net/project/lame/lame/${LAME_VERSION}/lame-${LAME_VERSION}.tar.gz" && \
     tar -xvz -f lame-${LAME_VERSION}.tar.gz && \
@@ -95,10 +88,8 @@ RUN mkdir -p /dist && cd /dist && \
 
 
 # ffmpeg && patch
-ARG FFMPEG_VERSION=4.2.2
-
+ARG FFMPEG_VERSION=4.3
 COPY ./contrib/ffmpeg /dist/bitwave-media-server/contrib/ffmpeg
-
 RUN mkdir -p /dist && cd /dist && \
     curl -OL "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.gz" && \
     tar -xvz -f ffmpeg-${FFMPEG_VERSION}.tar.gz && \
@@ -127,8 +118,7 @@ RUN mkdir -p /dist && cd /dist && \
 
 
 # node.js
-ARG NODE_VERSION=10.17.0
-
+ARG NODE_VERSION=12.18.2
 RUN mkdir -p /dist && cd /dist && \
     curl -OL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.xz" && \
     tar -xvJ -f "node-v${NODE_VERSION}-linux-x64.tar.xz" && \
@@ -137,62 +127,25 @@ RUN mkdir -p /dist && cd /dist && \
     cp -R lib /usr/local
 
 
-#ARG NGINX_RTMP_VERSION_OVERRIDE=2.0.0
-#ARG NGINX_RTMP_REPO=bitwave-tv
-#ARG NGINX_RTMP_VERSION=2.0.2
-#
 # nginx-rtmp
-#RUN mkdir -p /dist && cd /dist && \
-#    curl -OL "https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz" && \
-#    tar -xvz -f "nginx-${NGINX_VERSION}.tar.gz" && \
-#    curl -OL "https://github.com/${NGINX_RTMP_REPO}/nginx-rtmp-module/archive/v${NGINX_RTMP_VERSION_OVERRIDE}.tar.gz" && \
-#    tar -xvz -f "v${NGINX_RTMP_VERSION_OVERRIDE}.tar.gz" && \
-#    cd nginx-${NGINX_VERSION} && \
-#    ./configure \
-#        --prefix=/usr/local/nginx \
-#        --with-select_module \
-#        --with-poll_module \
-#        --with-threads \
-#        --with-file-aio \
-#        --with-http_ssl_module \
-#        --with-http_v2_module \
-#        --with-http_realip_module \
-#        --with-http_xslt_module=dynamic \
-#        --with-http_dav_module \
-#        --with-http_flv_module \
-#        --with-http_mp4_module \
-#        --with-http_gunzip_module \
-#        --with-http_gzip_static_module \
-#        --with-http_auth_request_module \
-#        --with-http_random_index_module \
-#        --with-http_secure_link_module \
-#        --with-http_degradation_module \
-#        --with-http_slice_module \
-#        --with-http_stub_status_module \
-#        --with-stream=dynamic \
-#        --with-stream_ssl_module \
-#        --with-stream_realip_module \
-#        --with-compat \
-#        --add-module=/dist/nginx-rtmp-module-${NGINX_RTMP_VERSION_OVERRIDE} \
-#        --with-debug && \
-#    make -j$(nproc) && \
-#    make install
+# ARG NGINX_RTMP_REPO=arut
+# ARG NGINXRTMP_VERSION=1.1.7.10
+# curl -OL "https://github.com/${NGINX_RTMP_REPO}}/nginx-rtmp-module/archive/v${NGINXRTMP_VERSION}.tar.gz" && \
+# tar -xvz -f "v${NGINXRTMP_VERSION}.tar.gz" && \
 
+ARG NGINX_VERSION=1.18.0
+ARG NGINX_RTMP_REPO=sergey-dryabzhinsky
 
-ARG NGINX_VERSION=1.16.1
-ARG NGINXRTMP_VERSION=1.2.1
-
-# nginx-rtmp
 RUN mkdir -p /dist && cd /dist && \
     curl -OL "https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz" && \
     tar -xvz -f "nginx-${NGINX_VERSION}.tar.gz" && \
-    curl -OL "https://github.com/arut/nginx-rtmp-module/archive/v${NGINXRTMP_VERSION}.tar.gz" && \
-    tar -xvz -f "v${NGINXRTMP_VERSION}.tar.gz" && \
+    curl -OL "https://github.com/${NGINX_RTMP_REPO}/nginx-rtmp-module/archive/dev.tar.gz" && \
+    tar -xvz -f "dev.tar.gz" && \
     cd nginx-${NGINX_VERSION} && \
     ./configure \
         --prefix=/usr/local/nginx \
         --with-http_ssl_module \
         --with-http_v2_module \
-        --add-module=/dist/nginx-rtmp-module-${NGINXRTMP_VERSION} && \
+        --add-module=/dist/nginx-rtmp-module-dev && \
     make -j$(nproc) && \
     make install
