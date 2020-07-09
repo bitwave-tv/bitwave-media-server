@@ -182,10 +182,12 @@ router.post(
         } catch ( error ) {
           console.error( error.message );
         }
+        // remove finished timer
+        liveTimers = liveTimers.filter( val => val.user.toLowerCase() !== name.toLowerCase() );
       }, notificationDelay * 1000 );
 
       notificationTimers.push({
-        user: name,
+        user: name.toLowerCase(),
         timer: timer,
       });
     }
@@ -208,6 +210,13 @@ router.post(
 
     // Streamer has  fully disconnected
     if ( app === 'live' ) {
+      // Prevent timer from firing when stream goes offline
+      liveTimers.map( val => {
+        if ( val.user.toLowerCase() === name.toLowerCase() )
+          clearTimeout( val.timer );
+        else
+          return val;
+      });
 
       // Prevent live timers from firing if we go offline
       liveTimers = liveTimers
@@ -248,11 +257,15 @@ router.post(
       const timer: Timeout = setTimeout( async () => {
         await streamauth.setTranscodeStatus( user, true, app );
         apiLogger.info(`[${app}] ${chalk.cyanBright.bold(user)} is now ${chalk.greenBright.bold('transcoded')}.`);
-      }, updateDelay * 1000 );
+        // remove timer
+        liveTimers = liveTimers.filter( val => {
+          return val.user !== `${name.toLowerCase()}-transcoder`;
+        });
+      }, 30 * 1000 );
 
 
       liveTimers.push({
-        user: `${name}-transcoder`,
+        user: `${name.toLowerCase()}-transcoder`,
         timer: timer,
       });
     }
@@ -277,10 +290,15 @@ router.post(
 
       // Prevent live timers from firing if we go offline
       liveTimers.map( val => {
-        if ( val.user === `${name}-transcoder` )
+        if ( val.user === `${name.toLowerCase()}-transcoder` )
           clearTimeout( val.timer );
         else
           return val;
+      });
+
+      // remove timer
+      liveTimers = liveTimers.filter( val => {
+        return val.user !== `${name.toLowerCase()}-transcoder`;
       });
     }
     res.send( `[${name}] is NOT transcoding ${user}.` );

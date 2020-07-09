@@ -6,7 +6,7 @@ services:
   # NGINX-RTMP Server Configuration
   nginx-server:
     container_name: bms-nginx-server
-    image: bitwavetv/bms-nginx-server:dev # USING DEV IMAGE
+    image: bitwavetv/bms-nginx-server:latest # USING DEV IMAGE
     # build: '../nginx-server'
 
     ports:
@@ -37,7 +37,7 @@ services:
   # API Server Configuration
   api-server:
     container_name: bms-api-server
-    image: bitwavetv/bms-api-server:dev # USING DEV IMAGE
+    image: bitwavetv/bms-api-server:latest # USING DEV IMAGE
     # build: '../api-server'
 
     ports:

@@ -67,5 +67,3 @@ services:
 # Network Definitions
 networks:
   internal:
-    external:
-      name: bms-net

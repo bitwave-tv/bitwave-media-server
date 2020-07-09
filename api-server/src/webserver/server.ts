@@ -87,9 +87,16 @@ class BitwaveMediaServer {
    * add favicon
    */
   addFavicon () {
-    this.app.use(
+    this.app.get(
       '/favicon.ico',
       express.static( path.join ( this.__public, 'favicon.ico' ) ),
+    );
+  }
+
+  addPreviewThumbnails () {
+    this.app.use(
+      '/preview',
+      express.static( '/tmp/preview' ),
     );
   }
 
@@ -107,7 +114,7 @@ class BitwaveMediaServer {
    */
   add404ErrorHandling () {
     this.app.use( ( req, res, next ) => {
-      const err = new Error( chalk.gray( `[404] Error ${req.url}` ) );
+      const err = new Error( `404 Error: ${req.url}` );
       res.status( 404 );
       next( err );
     });
@@ -149,6 +156,7 @@ class BitwaveMediaServer {
     this.addExpressLogger();
     this.beautifyJSONResponse();
     this.addFavicon();
+    this.addPreviewThumbnails();
     this.addRoutes();
   }
 

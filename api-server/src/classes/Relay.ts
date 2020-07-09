@@ -6,8 +6,6 @@ const relayLogger = logger( 'RELAY' );
 
 import { SocketClient } from './Socket';
 import { ffprobe } from 'fluent-ffmpeg';
-import { FfprobeStream } from 'fluent-ffmpeg';
-import { FfprobeFormat } from 'fluent-ffmpeg';
 
 interface IStreamRelay {
   user: string;
@@ -51,6 +49,60 @@ class StreamRelay {
       return false;
     }
 
+
+    // screenshot generator
+    const generateThumbnail = () => {
+      const screenshotFFmpeg = FfmpegCommand({ logger: relayLogger });
+
+      screenshotFFmpeg.renice( 5 )
+
+      // screenshotFFmpeg.input( `/tmp/preview/${user}.flv` );
+      screenshotFFmpeg.input( inputStream );
+      screenshotFFmpeg.inputOptions([
+        '-err_detect ignore_err',
+        '-ignore_unknown',
+        '-stats',
+        '-fflags nobuffer+genpts+igndts',
+      ]);
+
+      screenshotFFmpeg.output( `/tmp/preview/${user}.jpg` );
+      screenshotFFmpeg.outputOptions([
+        '-frames:v 1', // frames
+        '-q:v 25', // image quality
+        '-an', // no audio
+        '-y', // overwrite file
+      ]);
+
+      screenshotFFmpeg
+        .on( 'start', commandLine => {
+          relayLogger.info( chalk.yellowBright( `Starting preview thumbnail generator` ) );
+        })
+
+        .on( 'end', () => {
+          relayLogger.info( chalk.green( `Created preview thumbnail for ${user}.` ) );
+        })
+
+        .on( 'error', ( error, stdout, stderr ) => {
+          console.log( error );
+          console.log( stdout );
+          console.log( stderr );
+
+          if ( error.message.includes('SIGKILL') ) {
+            relayLogger.error( `${user}: Stream thumbnail stopped!` );
+          } else {
+            relayLogger.error( chalk.redBright( `${user}: Stream thumbnail error!` ) );
+          }
+        })
+
+        .on( 'progress', progress => {
+          // progress
+        });
+      screenshotFFmpeg.run();
+    };
+    const thumbnailTimer = setInterval( () => generateThumbnail(), 60 * 1000 );
+
+
+    // ffmpeg relay
     const ffmpeg = FfmpegCommand( { logger: relayLogger } ); // { stdoutLines: 3 }
 
     ffmpeg.input( inputStream );
@@ -101,6 +153,7 @@ class StreamRelay {
         relayLogger.info( chalk.redBright( `Livestream ended.` ) );
         this.transcoders = this.transcoders.filter( t => t.user.toLowerCase() !== user.toLowerCase() );
         SocketClient.onDisconnect( user );
+        clearInterval( thumbnailTimer );
       })
 
       .on( 'error', ( error, stdout, stderr ) => {
@@ -116,6 +169,7 @@ class StreamRelay {
 
         this.transcoders = this.transcoders.filter( t => t.user.toLowerCase() !== user.toLowerCase() );
         SocketClient.onDisconnect( user );
+        clearInterval( thumbnailTimer );
       })
 
       .on( 'progress', progress => {

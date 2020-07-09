@@ -1,0 +1,24 @@
+{
+  "ffmpeg": {
+    "relay": {
+      "inputOptions": [
+        "-err_detect ignore_err",
+        "-ignore_unknown",
+        "-stats",
+        "-fflags nobuffer+genpts+igndts"
+      ],
+
+      "outputOptions": [
+        "-f flv",
+        "-map_metadata -1",
+        "-metadata application=bitwavetv/livestream",
+        "-codec:a copy",
+        "-codec:v copy",
+        "-vsync 0",
+        "-copyts",
+        "-start_at_zero",
+        "-x264opts no-scenecut"
+      ]
+    }
+  }
+}
