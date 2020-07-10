@@ -39,7 +39,7 @@ interface ILiveTimer {
 }
 
 let liveTimers: ILiveTimer[] = [];
-const updateDelay: number    = 10; // 10 seconds
+const updateDelay: number    = 15; // 15 seconds
 
 let notificationTimers: ILiveTimer[] = [];
 const notificationDelay: number      = 60; // 60 seconds
@@ -261,7 +261,7 @@ router.post(
         liveTimers = liveTimers.filter( val => {
           return val.user !== `${name.toLowerCase()}-transcoder`;
         });
-      }, 30 * 1000 );
+      }, updateDelay * 1000 );
 
 
       liveTimers.push({
