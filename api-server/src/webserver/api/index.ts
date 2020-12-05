@@ -134,17 +134,19 @@ router.post(
       }
 
       // Start stream archive
-      const attempts = 3;
+      const attempts = 5;
       let response;
       for ( let i: number = 0; i <= attempts; i++ ) {
-        response = await rp( `${host}/${control}/record/start?app=live&name=${name}&rec=archive` );
+
+        // response = await rp( `${host}/${control}/record/start?app=live&name=${name}&rec=archive` );
+        response = await archiver.startArchive( name, 'replay' );
+
         if ( !response ) {
           await new Promise( resolve => setTimeout( resolve, 1000 * 10 ) );
           apiLogger.info( `${chalk.redBright('Failed to start archive')}, attempting again in 10 seconds (${i}/${attempts})` );
           if ( i === attempts ) apiLogger.info( `${chalk.redBright('Giving up on archive.')} (out of attempts)` );
         } else {
-          apiLogger.info( `Archiving ${chalk.cyanBright.bold(name)} to ${chalk.greenBright(response)}` );
-          // await streamauth.saveArchive( name, response );
+          apiLogger.info( `Archiving ${chalk.cyanBright.bold(name)} to: ${chalk.greenBright(response)}` );
           break;
         }
       }
@@ -423,17 +425,17 @@ router.post(
     }
 
     // Start archiving process
-    const response = await rp( `${host}/${control}/record/start?app=live&name=${streamer}&rec=archive` );
+    // const response = await rp( `${host}/${control}/record/start?app=live&name=${streamer}&rec=archive` );
+    const response = await archiver.startArchive( streamer, 'replay' );
 
     // Send response
     if ( !response ) {
       apiLogger.info(`${chalk.redBright('Failed to start archive')}, please try again.`);
     } else {
       apiLogger.info(`Archiving ${chalk.cyanBright.bold(streamer)} to ${chalk.greenBright(response)}`);
-      // await streamauth.saveArchive( streamer, response );
     }
 
-    res.status( 200 ).send( !!response ? response : `${streamer} failed to start archive` );
+    res.status( 200 ).send( !!response ? `Started recording: ${streamer}` : `${streamer} failed to start archive` );
   },
 );
 
@@ -461,16 +463,17 @@ router.post(
     }
 
     // Stop archiving process
-    const response = await rp( `${host}/${control}/record/stop?app=live&name=${streamer}&rec=archive` );
+    // const response = await rp( `${host}/${control}/record/stop?app=live&name=${streamer}&rec=archive` );
+    const response = await archiver.stopArchive( streamer, 'replay' );
 
     // Send response
     if ( !response ) {
       apiLogger.info(`${chalk.redBright('Failed to stop archive')}, please try again.` );
     } else {
-      apiLogger.info(`Archive of ${chalk.cyanBright.bold(streamer)} saved to ${chalk.greenBright(response)}`);
+      apiLogger.info(`Stopped recording ${chalk.cyanBright.bold(streamer)}`);
     }
 
-    res.status( 200 ).send( !!response ? response : `${streamer} failed to stop archive` );
+    res.status( 200 ).send( !!response ? `Stopped recording ${streamer}` : `${streamer} failed to stop archive` );
   },
 );
 

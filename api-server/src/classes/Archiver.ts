@@ -8,6 +8,7 @@ import * as FfmpegCommand from 'fluent-ffmpeg';
 import { ffprobe } from 'fluent-ffmpeg';
 
 import { stackpaths3 } from '../services/s3Storage';
+import * as rp from 'request-promise';
 
 interface IArchiveTransmuxed {
   file: string;
@@ -16,9 +17,107 @@ interface IArchiveTransmuxed {
   thumbnails: string[];
 }
 
-class ArchiveManager {
-  constructor () {
+interface IRecorder {
+  id: string;
+  process: any;
+}
 
+class ArchiveManager {
+  public recorders: IRecorder[];
+
+  constructor () {
+    this.recorders = [];
+  }
+
+  async startArchive ( user: string, recordName: string ) {
+    const id = `${user}-${recordName}`;
+    const inputStream  = `rtmp://nginx-server/live/${user}`;
+    const outputFile = `/archives/rec/${user}_${recordName}_${Date.now()}.flv`
+
+    // Check for existing recorder with same user ane name
+    const recorders = this.recorders.find( t => t.id.toLowerCase() === id.toLowerCase() );
+    if ( recorders && recorders.process !== null ) {
+      console.log( `${id} is already being recorded.` );
+      return;
+    }
+
+    console.log( `starting recording: ${id}` );
+
+    return new Promise<string>( ( res ) => {
+      // Create Command
+      const ffmpeg = FfmpegCommand({ stdoutLines: 3 });
+
+      ffmpeg.input( inputStream );
+      ffmpeg.inputOptions([
+        '-err_detect ignore_err',
+        '-ignore_unknown',
+        '-fflags nobuffer+genpts+igndts',
+      ]);
+
+      ffmpeg.output( outputFile );
+      ffmpeg.outputOptions([
+        '-c copy',
+      ]);
+
+      // Event handlers
+      ffmpeg
+        .on( 'start', commandLine => {
+          console.log( chalk.greenBright ( `Started recording stream: ${user}` ) );
+          console.log( commandLine );
+          res( outputFile );
+        })
+
+        .on( 'end', () => {
+          console.log( chalk.greenBright ( `Ended stream recording for: ${user}` ) );
+          this.recorders = this.recorders.filter( t => t.id.toLowerCase() !== id.toLowerCase() );
+          this.onArchiveEnd( user, recordName, outputFile );
+        })
+
+        .on( 'error', ( error, stdout, stderr ) => {
+          console.log( error );
+          console.log( stdout );
+          console.log( stderr );
+
+          if ( error.message.includes('SIGKILL') ) {
+            console.error( chalk.redBright ( `${user}: Stream recording stopped!` ) );
+          } else {
+            console.error( chalk.redBright ( `${user}: Stream recording error!` ) );
+          }
+
+          this.recorders = this.recorders.filter( t => t.id.toLowerCase() !== id.toLowerCase() );
+        })
+
+      // Start
+      ffmpeg.run();
+    });
+  }
+
+  async stopArchive ( user: string, recordName: string ) {
+    const id = `${user}-${recordName}`;
+    const recorders = this.recorders.find( t => t.id.toLowerCase() === id.toLowerCase() );
+    if ( recorders.process !== null ) {
+      recorders.process.kill( 'SIGKILL' );
+      console.log( `Stopping recording for: ${id}` );
+      return true;
+    } else {
+      console.log( `Not recording: ${id}` )
+      return false;
+    }
+  }
+
+  async onArchiveEnd ( user: string, name: string, fileLocation ) {
+    const options = {
+      form: {
+        name: user,
+        path: fileLocation,
+      }
+    };
+
+    try {
+      await rp.post( 'http://api-server:3000/archive/end', options );
+    } catch ( error ) {
+      console.error( error.message );
+    }
   }
 
   async deleteArchive ( archiveId: string ) {
@@ -127,52 +226,6 @@ class ArchiveManager {
     });
 
     const generateScreenshots = ( file: string, screenshots: number ):Promise<string[]> => new Promise ( async (res, reject) => {
-
-      // This was too slow
-      /*let filenames = null;
-      const folder = path.dirname( file );
-      const ffmpeg = FfmpegCommand( file )
-
-        .screenshots({
-          count: screenshots,
-          filename: '%b_%0i.png',
-          folder: folder,
-          // size: '640x360',
-        })
-
-        .on('filenames', ( outputFilenames: string[] ) => {
-          filenames = outputFilenames.map( f => `${folder}/${f}` );
-        })
-
-        .on('start', command => {
-          console.log( chalk.greenBright(`Starting thumbnail generation.`) );
-          console.log( command );
-        })
-        .on('end', ( stdout, stderr ) => {
-          console.log( chalk.greenBright(`Finished generating ${screenshots} screenshots.`) );
-          console.log( `Generated ${filenames.length}/${screenshots} screenshots:\n${filenames.join('\n')}` );
-          return res ( filenames );
-        })
-
-        .on( 'error', ( error, stdout, stderr ) => {
-          console.log( chalk.redBright(`Error generating screenshots.`) );
-
-          console.log( error );
-          console.log( stdout );
-          console.log( stderr );
-
-          return reject( error );
-        });
-        */
-
-      /*ffmpeg.inputOptions([
-        '-err_detect ignore_err',
-        '-ignore_unknown',
-        '-stats',
-      ]);*/
-
-
-
 
       const takeScreenshots = ( file, count ): Promise<string[]> => {
         const folder = path.dirname( file );

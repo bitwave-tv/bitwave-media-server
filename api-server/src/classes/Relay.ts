@@ -207,10 +207,10 @@ class StreamRelay {
           if ( videoData ) {
             const vBitrate = parseFloat(videoData.bit_rate) / 1024 / 1024;
             // Prevent exceptionally high bitrates
-            if ( vBitrate > 10 ) {
+            if ( vBitrate > 6 ) {
               clearTimeout( timeout ); // Cancel timer
               relayLogger.info( `${videoData.width}x${videoData.height} rFPS:${videoData.r_frame_rate} avgFPS:${videoData.avg_frame_rate} ${vBitrate.toFixed(2)}mb/s b_frames=${videoData.has_b_frames}` );
-              console.log( chalk.redBright( `Bitrate is too high! '${endpoint}': ${error.message}`) );
+              console.log( chalk.redBright( `Bitrate is too high! '${endpoint}': ${error}`) );
               // Reject early to prevent abuse
               return reject( 'Bitrate is too high!' );
             }

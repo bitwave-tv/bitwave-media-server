@@ -78,8 +78,6 @@ class Transcoder {
         '-muxdelay 0',
         '-copyts',
 
-        '-tune zerolatency', // tune
-
         '-x264opts no-scenecut',
       ] )
         .size( '256x144' )
@@ -110,8 +108,6 @@ class Transcoder {
         '-crf 35',
         '-muxdelay 0',
         '-copyts',
-
-        '-tune zerolatency', // tune
 
         '-x264opts no-scenecut',
       ] )
