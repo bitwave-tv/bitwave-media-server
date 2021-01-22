@@ -496,6 +496,14 @@ router.post(
     const server = req.body.server;
     const key    = req.body.key;
 
+    if (
+      server.includes('stream.bitwave.tv') ||
+      server.includes('stream.bitrave.tv')
+    ) {
+      apiLogger.info( `Denied circular restreaming attempt.` );
+      return res.send( `Denied Restream Attempt.` );
+    }
+
     // Attempt to get case sensitive username
     let streamer = serverData.getStreamer( user );
 
