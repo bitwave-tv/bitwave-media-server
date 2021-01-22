@@ -173,7 +173,9 @@ class StreamRelay {
       })
 
       .on( 'progress', progress => {
-        this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() ).data = {
+        const transcoder = this.transcoders.find( t => t.user.toLowerCase() === user.toLowerCase() );
+        if ( !transcoder ) return;
+        transcoder.data = {
           frames: progress.frames,
           fps: progress.currentFps,
           bitRate: progress.currentKbps,
