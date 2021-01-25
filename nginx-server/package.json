@@ -18,7 +18,7 @@
     "url": "git+https://github.com/bitwave-tv/bitwave-media-server.git"
   },
   "author": "dispatch",
-  "license": "GPL-3.0",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/bitwave-tv/bitwave-media-server/issues"
   },
