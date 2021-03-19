@@ -27,7 +27,7 @@
     "cfonts": "^2.4.5",
     "chalk": "^3.0.0",
     "moment-timezone": "^0.5.27",
-    "printf": "^0.5.2",
+    "printf": "^0.6.1",
     "q": "^1.5.1",
     "request": "^2.88.0",
     "request-promise": "^4.2.4"
