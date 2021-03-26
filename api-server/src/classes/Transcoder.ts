@@ -10,8 +10,88 @@ interface IProgressData {
   frames: number;
   bitRate: number;
   fps: number;
-  time: number
+  time: number;
 }
+
+
+const INPUT_OPTIONS = [
+  '-err_detect ignore_err',
+  '-ignore_unknown',
+  '-stats',
+  '-fflags nobuffer+genpts+igndts',
+];
+
+const OUTPUT_144_OPTIONS = [
+  '-f flv',
+  '-map_metadata -1',
+  '-metadata application=bitwavetv/transcoder',
+
+  // Audio (copy)
+  '-c:a copy',
+
+  // Video (transcode)
+  '-c:v libx264',
+  '-preset:v superfast', // preset
+  // '-b:v 250k', //bitrate
+  // '-maxrate {bitrate}k', // bitrate
+  // '-bufsize {bitrate}k', // bitrate
+  // '-r {fps}', // fps
+  '-g 60', // gop
+  '-pix_fmt yuv420p',
+  '-vsync 1',
+
+  // custom
+  '-crf 35',
+  '-muxdelay 0',
+  '-copyts',
+
+  '-x264opts no-scenecut',
+];
+
+const OUTPUT_480_OPTIONS = [
+  '-f flv',
+  '-map_metadata -1',
+  '-metadata application=bitwavetv/transcoder',
+
+  // Audio (copy)
+  '-c:a copy',
+
+  // Video (transcode)
+  '-c:v libx264',
+  '-preset:v superfast', // preset
+  // '-b:v 500k', //bitrate
+  // '-maxrate {bitrate}k', // bitrate
+  // '-bufsize {bitrate}k', // bitrate
+  '-g 60', // gop
+  '-pix_fmt yuv420p',
+  '-vsync 1',
+
+  // custom
+  '-crf 35',
+  '-muxdelay 0',
+  '-copyts',
+
+  '-x264opts no-scenecut',
+];
+
+const OUTPUT_SRC_OPTIONS = [
+  // Global
+  '-f flv',
+  '-map_metadata -1',
+  '-metadata application=bitwavetv/transcoder',
+
+  // Audio (copy)
+  '-codec:a copy',
+
+  // Video
+  '-codec:v copy',
+  '-vsync 0',
+  '-copyts',
+  '-start_at_zero',
+
+  '-x264opts no-scenecut',
+];
+
 
 class Transcoder {
   public transcoders: ITranscoder[];
@@ -45,94 +125,26 @@ class Transcoder {
     const ffmpeg = FfmpegCommand( { stdoutLines: 3 } );
 
     ffmpeg.input( inputStream );
-    ffmpeg.inputOptions([
-      '-err_detect ignore_err',
-      '-ignore_unknown',
-      '-stats',
-      '-fflags nobuffer+genpts+igndts',
-    ]);
+    ffmpeg.inputOptions( INPUT_OPTIONS );
 
     if ( enable144p ) {
       ffmpeg.output( `${outputStream}_144` );
-      ffmpeg.outputOptions( [
-        '-f flv',
-        '-map_metadata -1',
-        '-metadata application=bitwavetv/transcoder',
-
-        // Audio (copy)
-        '-c:a copy',
-
-        // Video (transcode)
-        '-c:v libx264',
-        '-preset:v superfast', // preset
-        // '-b:v 250k', //bitrate
-        // '-maxrate {bitrate}k', // bitrate
-        // '-bufsize {bitrate}k', // bitrate
-        // '-r {fps}', // fps
-        '-g 60', // gop
-        '-pix_fmt yuv420p',
-        '-vsync 1',
-
-        // custom
-        '-crf 35',
-        '-muxdelay 0',
-        '-copyts',
-
-        '-x264opts no-scenecut',
-      ] )
+      ffmpeg
+        .outputOptions( OUTPUT_144_OPTIONS )
         .size( '256x144' )
         .autopad( true, 'black' );
     }
 
     if ( enable480p ) {
       ffmpeg.output( `${outputStream}_480` );
-      ffmpeg.outputOptions( [
-        '-f flv',
-        '-map_metadata -1',
-        '-metadata application=bitwavetv/transcoder',
-
-        // Audio (copy)
-        '-c:a copy',
-
-        // Video (transcode)
-        '-c:v libx264',
-        '-preset:v superfast', // preset
-        // '-b:v 500k', //bitrate
-        // '-maxrate {bitrate}k', // bitrate
-        // '-bufsize {bitrate}k', // bitrate
-        '-g 60', // gop
-        '-pix_fmt yuv420p',
-        '-vsync 1',
-
-        // custom
-        '-crf 35',
-        '-muxdelay 0',
-        '-copyts',
-
-        '-x264opts no-scenecut',
-      ] )
+      ffmpeg
+        .outputOptions( OUTPUT_480_OPTIONS )
         .size( '854x480' )
         .autopad( true, 'black' );
     }
 
     ffmpeg.output( `${outputStream}_src?user=${user}` );
-    ffmpeg.outputOptions([
-      // Global
-      '-f flv',
-      '-map_metadata -1',
-      '-metadata application=bitwavetv/transcoder',
-
-      // Audio (copy)
-      '-codec:a copy',
-
-      // Video
-      '-codec:v copy',
-      '-vsync 0',
-      '-copyts',
-      '-start_at_zero',
-
-      '-x264opts no-scenecut',
-    ]);
+    ffmpeg.outputOptions( OUTPUT_SRC_OPTIONS );
 
     ffmpeg
       .on( 'start', commandLine => {

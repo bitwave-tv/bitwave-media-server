@@ -18,8 +18,14 @@ export default ( req, res, next ) => {
     const code: number = res.statusCode;
     const url: string  = ( req.originalUrl || req.url );
 
-    if ( req.body.app ) webLogger.debug( `[${req.body.app}] ${chalk.cyanBright(req.body.name)} '${url}'` );
-    else webLogger.debug( `${req.method} ${code} '${url}'` ); // req.ip
+    if ( req.body.app )
+      webLogger.info( `[${req.body.app}] ${chalk.cyanBright(req.body.name)} '${url}'` );
+
+    // filter out requests for preview images
+    if ( url.startsWith('/preview/') ) return;
+
+    // log to debug channel each request
+    webLogger.debug( `${req.method} ${code} '${url}'` ); // req.ip
   };
 
   res.on ( 'finish', log );

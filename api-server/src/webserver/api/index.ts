@@ -15,6 +15,12 @@ export const streamauth = streamAuth({
   cdnServer  : process.env['BMS_CDN']    || 'cdn.stream.bitrave.tv',
 });
 
+import OdyseeStream from '../../classes/OdyseeStream';
+const odyseeStream = new OdyseeStream({
+  hostServer : 'stream.odysee.com',
+  cdnServer  : 'cdn.odysee.live',
+});
+
 import { serverData } from '../../classes/ServerData';
 import { hlsRelay }   from '../../classes/Relay';
 import { transcoder } from '../../classes/Transcoder';
@@ -27,6 +33,7 @@ import {
   validate,
   validateUserToken
 } from '../middleware/auth';
+import { fromHex } from '../../services/hex';
 
 const port    = '5000';
 const server  = 'nginx-server';
@@ -71,9 +78,55 @@ router.post(
     if ( streamer ) {
       apiLogger.error( `Streamer '${name}' is already connected! Denying new connection.` );
       return res
-        .status( 500 )
-        .send( `Failed to start HLS ffmpeg process` );
+        .status( 403 )
+        .send( `Another stream is already in progress.` );
     }
+
+
+    //------------------------------------------------
+    // Detect Odysee Stream
+    const hexData = req.body.d;
+    const signature = req.body.s;
+    const signatureTs = req.body.t;
+
+    if ( hexData && signature && signatureTs ) {
+      const odyseeValidKey = await odyseeStream.verifySignature(name, hexData, signature, signatureTs);
+
+      if ( odyseeValidKey ) {
+        const channel = fromHex( hexData );
+        apiLogger.info(`Odysee StreamKey for ${channel} is valid. [200]`)
+        res
+          .status( 200 )
+          .send( `${name} authorized.` );
+
+        // Relay stream to HLS endpoint
+        const relaySuccessful: boolean = await hlsRelay.startRelay( name );
+
+        // Verify we were able to start the HLS ffmpeg process
+        if ( !relaySuccessful ) {
+          apiLogger.error( `[${channel}] Failed to start HLS relay` );
+          return;
+        }
+
+        // Set stream as LIVE in database
+        const liveTimer = setTimeout( async() => await odyseeStream.setLiveStatus( name, true ), updateDelay * 1000 );
+        liveTimers.push({
+          user: name,
+          timer: liveTimer,
+        });
+
+        apiLogger.info( `Odysee auth process complete.` );
+        return;
+      } else {
+        apiLogger.info(`Odysee StreamKey for ${name} is invalid. [403]`)
+        res
+          .status( 403 )
+          .send( `${name} denied.` );
+        return;
+      }
+    }
+    //------------------------------------------------
+
 
     // The following code only runs on the live endpoint
     // and requires both a name & key to authorize publish
@@ -213,12 +266,13 @@ router.post(
     // Streamer has  fully disconnected
     if ( app === 'live' ) {
       // Prevent timer from firing when stream goes offline
-      liveTimers.map( val => {
-        if ( val.user.toLowerCase() === name.toLowerCase() )
-          clearTimeout( val.timer );
-        else
-          return val;
-      });
+      liveTimers
+        .map( val => {
+          if ( val.user.toLowerCase() === name.toLowerCase() )
+            clearTimeout( val.timer );
+          else
+            return val;
+        });
 
       // Prevent live timers from firing if we go offline
       liveTimers = liveTimers
@@ -236,6 +290,11 @@ router.post(
 
       // Set offline status
       await streamauth.setLiveStatus( name, false );
+
+      //---------------------------------------------------
+      // In case the stream is an odysee stream...
+      await odyseeStream.setLiveStatus( name, false );
+      //---------------------------------------------------
 
       res.send( `[${app}] ${name} is now OFFLINE` );
     }

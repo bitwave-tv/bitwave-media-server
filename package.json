@@ -1,6 +1,6 @@
 {
   "name": "bitwave-media-server",
-  "version": "1.2.1",
+  "version": "3.0.0-alpha12",
   "description": "bitwave media server",
   "main": "src/index.js",
   "scripts": {
@@ -8,10 +8,16 @@
     "watch": "tsc -w",
     "dev": "npx nodemon ./build",
     "start": "node ./build",
-    "docker:build": "docker build --cache-from bitwavetv/bitwave-media-server:builder --cache-from bitwavetv/bitwave-media-server:latest -t bitwavetv/bitwave-media-server:latest .",
-    "docker:up": "docker-compose up",
-    "docker:publish": "docker push bitwavetv/bitwave-media-server:latest",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "old:docker:build": "docker build --cache-from bitwavetv/bitwave-media-server:builder --cache-from bitwavetv/bitwave-media-server:latest -t bitwavetv/bitwave-media-server:latest .",
+    "old:docker:up": "docker-compose up",
+    "old:docker:publish": "docker push bitwavetv/bitwave-media-server:latest",
+    "docker-build:dev:api": "cd ./api-server && docker build -t bitwavetv/bms-api-server:dev .",
+    "docker-build:dev:nginx": "cd ./nginx-server && docker build -t bitwavetv/bms-nginx-server:dev .",
+    "docker-push:dev:api": "docker push bitwavetv/bms-api-server:dev",
+    "docker-push:dev:nginx": "docker push bitwavetv/bms-nginx-server:dev",
+    "docker-build:dev": "npm run docker-build:dev:api && npm run docker-build:dev:nginx",
+    "docker-push:dev": "npm run docker-push:dev:api && npm run docker-push:dev:nginx",
+    "docker-publish:dev": "npm run docker-build:dev && npm run docker-push:dev"
   },
   "repository": {
     "type": "git",

@@ -17,7 +17,7 @@ interface IProgressData {
   frames: number;
   bitRate: number;
   fps: number;
-  time: number
+  time: number;
 }
 
 class StreamRelay {
