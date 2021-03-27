@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# Configuration Variables
+docker_compose_location="$HOME/bitwave-media-server"
+log_lines=100
+
+##############################
+### BEGIN SCRIPT BEHAVIOR ####
+##############################
+
+echo $'\nDisplaying docker log...\n'
+
+cd "$docker_compose_location" && docker-compose logs --tail $log_lines -f
+
+echo $'\nClosed docker logs.'

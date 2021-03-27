@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# Configuration Variables
+# example: dev, latest, v3.0.0
+bms_tag='dev'
+docker_compose_location="$HOME/bitwave-media-server"
+log_lines=100
+
+##############################
+### BEGIN SCRIPT BEHAVIOR ####
+##############################
+
+# Container images for teh API and NGINX Servers
+bms_api='bitwavetv/bms-api-server'
+bms_nginx='bitwavetv/bms-nginx-server'
+
+# Start script
+echo $'\nUpdating from docker hub...\n'
+
+docker pull $bms_api:$bms_tag
+docker pull $bms_nginx:$bms_tag
+
+echo $'\nUpdated conatiners from docker hub.\n'
+
+echo $'\nStopping docker containers...'
+
+cd "$docker_compose_location" && docker-compose stop
+
+echo $'\nStarting docker containers...\n'
+
+cd "$docker_compose_location" && docker-compose up --build -d
+
+echo $'\nDisplaying docker log...\n'
+
+cd "$docker_compose_location" && docker-compose logs --tail $log_lines -f
+
+echo $'\nSuccessfully upedated bitwave-media-server! :)'

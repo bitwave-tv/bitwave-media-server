@@ -1,10 +1,15 @@
 # Bitwave Media Server
 
-An RTMP ingestion server + API server packaged as docker containers for managing and controlling streams, restreams, and archives on bitwave.tv
+An RTMP ingestion server + API server packaged as docker containers for managing and controlling streams, restreams, and archives.
+
+This is the backbone of livestreaming for [bitwave.tv]
+
+Utilizing tech such as NGINX, ffmpeg, node.js, and docker.
 
 ## Commands
 
 Updating Server:
+(an easier method is available via [server-scritps](/server-scripts))
 
 ```bash
 docker pull bitwavetv/bms-api-server:latest
@@ -27,6 +32,8 @@ docker-compose up --build -d && docker-compose logs --tail 25 -f
 ```
 
 View Logs:
+(an easier method is available via [server-scritps](/server-scripts))
+
 ```bash
 docker-compose logs --tail 25 -f
 ```
@@ -58,7 +65,7 @@ Exec bash into running container:
 docker exec -it [containerId] bash
 ```
 
-Docker-Compose:
+Docker-Compose start server:
 ```bash
 docker-compose up
 ```
@@ -77,16 +84,27 @@ docker-compose restart && \
 docker-compose logs --tail 25 -f
 ```
 
+## Server Helper Scripts
+
+see: [server-scripts](/server-scripts)
+
+Currently, the following commands are available:
+
+
+### [bms-update](/server-scripts/README.md#bms-update)
+Updates and restarts ingestion server.
+
+
+### [bms-logs](/server-scripts/README.md#bms-logs)
+Show docker logs for bitwave-media-server
+
+
+---
+
 
 ### Outdated
 
-Run bash:
-```bash
-docker run -it \
-    -v path/to/service-account.json:/conf/service-account.json \
-    bitwavetv/bitwave-media-server \
-    bash
-```
+(aka I no longer remember the context of these commands, and they are probably not needed)
 
 Cache Builder:
  ```bash
