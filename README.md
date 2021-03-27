@@ -84,6 +84,36 @@ docker-compose restart && \
 docker-compose logs --tail 25 -f
 ```
 
+
+## NPM Helper Commands
+
+These basically do what is described above, but without requiring as much typing.
+
+To execute the follow commands, preface them with: `npm run COMMAND`.
+
+### `docker-build:dev:api`
+Build API Service, tag as `dev`.  
+
+### `docker-build:dev:nginx`
+Build NGINX Service, tag as `dev`.
+
+### `docker-push:dev:api`
+Push API Server image, tagged as `dev`.
+
+### `docker-push:dev:nginx`
+Push NGINX Server image, tagged as `dev`.
+
+### `docker-build:dev`
+Build ALL Services, tagged as `dev`.
+
+### `docker-push:dev`
+Push ALL Servicers image, tagged as `dev`.
+
+### `docker-publish:dev`
+(This is the most convient command)  
+One shot build and push ALL services, tagged as `dev`.  
+
+
 ## Server Helper Scripts
 
 see: [server-scripts](/server-scripts)
