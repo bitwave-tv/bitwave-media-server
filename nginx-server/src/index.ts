@@ -75,7 +75,7 @@ import Signals = NodeJS.Signals;
 const signals = {
   'SIGHUP': 1,
   'SIGINT': 2,
-  'SIGTERM': 15
+  'SIGTERM': 15,
 };
 
 // Create a listener for each of the signals that we want to handle

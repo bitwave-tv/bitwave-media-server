@@ -39,6 +39,7 @@ interface IStreamerData {
   format: object,
   video: IVideoStats[],
   audio: IAudioStats[],
+  isOdysee: boolean,
 }
 
 /**
@@ -56,9 +57,10 @@ class ServerData {
   /**
    * Adds and tracks new streamer
    * @param {string} streamer
+   * @param {boolean} [isOdyseeStream=false]
    * @return {void}
    */
-  addStreamer ( streamer: string ): void {
+  addStreamer ( streamer: string, isOdyseeStream?: boolean ): void {
 
     const streamerData: IStreamerData = {
       name: streamer,
@@ -66,6 +68,7 @@ class ServerData {
       format: {},
       video: [],
       audio: [],
+      isOdysee: isOdyseeStream || false,
     };
 
     this.streamers.set( streamer, streamerData );

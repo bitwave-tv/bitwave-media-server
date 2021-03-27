@@ -288,12 +288,23 @@ router.post(
           else return val;
         });
 
-      // Set offline status
-      await streamauth.setLiveStatus( name, false );
+
+      // Get streamer data (used to detect Odysee streams)
+      let streamer = serverData.getStreamerData( name );
 
       //---------------------------------------------------
-      // In case the stream is an odysee stream...
-      await odyseeStream.setLiveStatus( name, false );
+      // Bitwave (non-odysee) streams
+      if ( !streamer.isOdysee ) {
+        // Set offline status
+        await streamauth.setLiveStatus( name, false );
+      }
+      //---------------------------------------------------
+
+      //---------------------------------------------------
+      // Odysee streams
+      if ( streamer.isOdysee ) {
+        await odyseeStream.setLiveStatus( name, false );
+      }
       //---------------------------------------------------
 
       res.send( `[${app}] ${name} is now OFFLINE` );

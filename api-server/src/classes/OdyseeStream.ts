@@ -60,49 +60,52 @@ export default class OdyseeStream {
 
   /**
    * Set transcode status and livestream endpoint
-   * @param {string} username - Streamer's username
+   * @param {string} claimId - Streamer's claimId
    * @param {boolean} transcoded - Transcode status
    * @param {string?} location - Transcode location
    * @return {Promise<void>}
    */
-  async setTranscodeStatus ( username: string, transcoded: boolean, location?: string ): Promise<void> {
+  async setTranscodeStatus ( claimId: string, transcoded: boolean, location?: string ): Promise<void> {
     const streamRef = admin.firestore()
-      .collection( 'streams' )
-      .doc( username.toLowerCase() );
+      .collection( 'odysee-streams' )
+      .doc( claimId.toLowerCase() );
 
     const doc = await streamRef.get();
 
     if ( !doc.exists ) {
-      log.info( `${chalk.bgRedBright.black('ERROR:')} ${username} is not a valid streamer` );
+      log.info( `${chalk.bgRedBright.black('ERROR:')} ${claimId} is not a valid streamer` );
       return;
     }
 
     let url: string;
     if ( transcoded ) {
       // url = `https://${this.cdnServer}/${transcodeStream}/${username}.m3u8`;
-      url = `https://${this.cdnServer}/${location}/${username}.m3u8`;
+      url = `https://${this.cdnServer}/${location}/${claimId}.m3u8`;
     } else {
-      url = `https://${this.cdnServer}/${hlsStream}/${username}/index.m3u8`;
+      url = `https://${this.cdnServer}/${hlsStream}/${claimId}/index.m3u8`;
     }
 
     await streamRef.update({
       url: url,
     });
 
-    log.info( `${chalk.cyanBright(username)}'s transcoder has ${ transcoded ? chalk.greenBright.bold('started') : chalk.redBright.bold('stopped') }.` );
+    log.info( `${chalk.cyanBright(claimId)}'s transcoder has ${ transcoded ? chalk.greenBright.bold('started') : chalk.redBright.bold('stopped') }.` );
   };
 
   /**
    * Check streamer's archive setting
-   * @param {string} username - Streamer's username
+   * @param {string} claimId - Streamer's claimId
    * @return {Promise<boolean>}
    */
-  async checkArchive( username: string ): Promise<boolean> {
-    const streamRef = admin.firestore().collection( 'streams' ).doc( username.toLowerCase() );
+  async checkArchive( claimId: string ): Promise<boolean> {
+    const streamRef = admin
+      .firestore()
+      .collection( 'odysee-streams' )
+      .doc( claimId.toLowerCase() );
     const doc = await streamRef.get();
 
     if ( !doc.exists ) {
-      log.info( `${chalk.bgRedBright.black('ERROR:')} ${username} is not a valid streamer` );
+      log.info( `${chalk.bgRedBright.black('ERROR:')} ${claimId} is not a valid streamer` );
       return;
     }
 
@@ -112,20 +115,20 @@ export default class OdyseeStream {
 
   /**
    * Passes archive information to API server
-   * @param {string} username
+   * @param {string} claimId
    * @param {string} location
    * @param {number} duration
    * @param {Array<string>} thumbnails
    * @return {Promise<void>}
    */
-  async saveArchive ( username: string, location: string, duration: number, thumbnails: string[] ): Promise<void> {
+  async saveArchive ( claimId: string, location: string, duration: number, thumbnails: string[] ): Promise<void> {
     const options = {
       headers: {
         'content-type': 'application/x-www-form-urlencoded',
       },
       form: {
         server: this.hostServer,
-        username: username,
+        username: claimId,
         location: location,
         duration: duration,
         thumbnails: thumbnails,
