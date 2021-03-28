@@ -115,7 +115,30 @@ router.post(
           timer: liveTimer,
         });
 
+        apiLogger.info( `Start recording Odysee stream.` );
+
+
+        //------------------------------------------------
+        // Start stream archive
+        const attempts = 5;
+        const interval = 5;
+        let response;
+        for ( let i: number = 0; i <= attempts; i++ ) {
+          response = await archiver.startArchive( name, 'replay' );
+          if ( !response ) {
+            await new Promise( resolve => setTimeout( resolve, 1000 * interval ) );
+            apiLogger.info( `${chalk.redBright('Failed to start archive')}, attempting again in ${interval} seconds (${i}/${attempts})` );
+            if ( i === attempts ) apiLogger.info( `${chalk.redBright('Giving up on archive.')} (out of attempts)` );
+          } else {
+            apiLogger.info( `Archiving ${chalk.cyanBright.bold(name)} to: ${chalk.greenBright(response)}` );
+            break;
+          }
+        }
+        //------------------------------------------------
+
+
         apiLogger.info( `Odysee auth process complete.` );
+
         return;
       } else {
         apiLogger.info(`Odysee StreamKey for ${name} is invalid. [403]`)
