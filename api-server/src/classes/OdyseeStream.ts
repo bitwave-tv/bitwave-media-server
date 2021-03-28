@@ -50,7 +50,7 @@ export default class OdyseeStream {
     });
 
     if ( isLive ) {
-      serverData.addStreamer( claimId );
+      serverData.addStreamer( claimId, true );
     } else {
       serverData.removeStreamer( claimId );
     }
