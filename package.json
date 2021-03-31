@@ -1,6 +1,6 @@
 {
   "name": "bitwave-media-server",
-  "version": "3.0.0-alpha18",
+  "version": "3.0.0-alpha19",
   "description": "bitwave media server",
   "main": "src/index.js",
   "scripts": {
