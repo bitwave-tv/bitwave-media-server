@@ -5,16 +5,21 @@ import { promises as fsp } from 'fs';
 import * as path from 'path';
 import * as chalk from 'chalk';
 import * as FfmpegCommand from 'fluent-ffmpeg';
-import { ffprobe } from 'fluent-ffmpeg';
+import { ffprobe, FfprobeData } from 'fluent-ffmpeg';
 
 import { stackpaths3 } from '../services/s3Storage';
 import * as rp from 'request-promise';
 
-interface IArchiveTransmuxed {
+type IStreamService = 'odysee' | 'bitwave';
+
+export interface IArchiveTransmuxed {
   file: string;
   type: 'flv'|'mp4';
   duration: number;
+  fileSize: number;
   thumbnails: string[];
+  channel: string;
+  service: IStreamService;
 }
 
 interface IRecorder {
@@ -62,13 +67,13 @@ class ArchiveManager {
       // Event handlers
       ffmpeg
         .on( 'start', commandLine => {
-          console.log( chalk.greenBright ( `Started recording stream: ${user}` ) );
+          console.log( chalk.greenBright ( `[${recordName}] Started recording stream: ${user}` ) );
           console.log( commandLine );
           res( outputFile );
         })
 
         .on( 'end', () => {
-          console.log( chalk.greenBright ( `Ended stream recording for: ${user}` ) );
+          console.log( chalk.greenBright ( `[${recordName}] Ended stream recording for: ${user}` ) );
           this.recorders = this.recorders.filter( t => t.id.toLowerCase() !== id.toLowerCase() );
           this.onArchiveEnd( user, recordName, outputFile );
         })
@@ -105,15 +110,32 @@ class ArchiveManager {
     }
   }
 
-  async onArchiveEnd ( user: string, name: string, fileLocation ) {
-    const options = {
-      form: {
-        name: user,
-        path: fileLocation,
-      }
-    };
+  async onArchiveEnd ( user: string, recordName: string, fileLocation: string ): Promise<void> {
+    // Log debug info
+    console.log( `[${recordName}] Replay for ${user} saved to ${fileLocation}.` );
+    console.log( `[${recordName}] Converting FLV to MP4 and generating thumbnails...` );
 
+    // Transmux file
+    const result: IArchiveTransmuxed = await this.transmuxArchive( fileLocation, user, recordName );
+
+    // Log debug info (replay duration)
+    const rMin: number = Math.trunc( result.duration / 60 );
+    const rSec: number = Math.trunc( result.duration ) % 60;
+    console.log( `[${recordName}] Replay is ${rMin}:${rSec}` );
+
+
+    // use recordName to detect which platform's service was used
+    const service: IStreamService = recordName === 'odysee'? 'odysee' : 'bitwave';
+
+    // API call when completed
     try {
+      const options = {
+        form: {
+          channel: user,
+          service: service,
+          result: result,
+        },
+      };
       await rp.post( 'http://api-server:3000/archive/end', options );
     } catch ( error ) {
       console.error( error.message );
@@ -157,8 +179,8 @@ class ArchiveManager {
     }
   }
 
-  async transmuxArchive ( file: string, channel: string ):Promise<IArchiveTransmuxed> {
-    const transmuxAsync = ( file: string ):Promise<string> => new Promise( ( res, reject ) => {
+  async transmuxArchive ( file: string, channel: string, recordName: string ): Promise<IArchiveTransmuxed> {
+    const transmuxAsync = ( file: string ): Promise<string> => new Promise( ( res, reject ) => {
       // Change flv to mp4
       const outFile = file.replace( /\.flv$/i, '.mp4' );
 
@@ -205,8 +227,8 @@ class ArchiveManager {
       ffmpeg.run();
     });
 
-    const probeTransmuxedFile = ( file: string ):Promise<object> => new Promise ( ( res, reject ) => {
-      ffprobe( file, ( error, data ) => {
+    const probeTransmuxedFile = ( file: string ): Promise<object> => new Promise ( ( res, reject ) => {
+      ffprobe( file, ( error, data: FfprobeData ) => {
         if ( error ) return reject( error );
 
         // Video Data
@@ -221,11 +243,11 @@ class ArchiveManager {
           // console.log( audioData );
         }
 
-        return res({ video: videoData, audio: audioData });
+        return res({ video: videoData, audio: audioData, format: data.format });
       });
     });
 
-    const generateScreenshots = ( file: string, screenshots: number ):Promise<string[]> => new Promise ( async (res, reject) => {
+    const generateScreenshots = ( file: string, screenshots: number ): Promise<string[]> => new Promise ( async (res, reject) => {
 
       const takeScreenshots = ( file, count ): Promise<string[]> => {
         const folder = path.dirname( file );
@@ -306,9 +328,11 @@ class ArchiveManager {
       res( screenshotFiles );
     });
 
+    // use recordName to detect which platform's service was used
+    const service: IStreamService = recordName === 'odysee'? 'odysee' : 'bitwave';
 
     // Transmux FLV -> mp4
-    let transmuxFile = null;
+    let transmuxFile: string = null;
     try {
       transmuxFile = await transmuxAsync( file );
     } catch ( error ) {
@@ -319,6 +343,9 @@ class ArchiveManager {
         type: 'flv',
         duration: 0,
         thumbnails: [],
+        channel: channel,
+        service: service,
+        fileSize: 0,
       };
     }
 
@@ -329,6 +356,9 @@ class ArchiveManager {
         type: 'flv',
         duration: 0,
         thumbnails: [],
+        channel: channel,
+        service: service,
+        fileSize: 0,
       };
     }
 
@@ -345,6 +375,9 @@ class ArchiveManager {
         type: 'flv',
         duration: 0,
         thumbnails: [],
+        channel: channel,
+        service: service,
+        fileSize: 0,
       };
     }
 
@@ -355,6 +388,9 @@ class ArchiveManager {
         type: 'flv',
         duration: 0,
         thumbnails: [],
+        channel: channel,
+        service: service,
+        fileSize: 0,
       };
     }
 
@@ -397,7 +433,7 @@ class ArchiveManager {
       try {
         s3Thumbnails = await Promise.all(
           thumbnails.map( async thumbnail => {
-            return await stackpaths3.uploadImage( thumbnail );
+            return await stackpaths3.uploadImage( thumbnail, service );
           } )
         );
       } catch ( error ) {
@@ -427,7 +463,7 @@ class ArchiveManager {
 
     // S3 Upload video
     console.log( `Upload mp4 to S3 bucket...` );
-    const s3FileLocation = await stackpaths3.upload( transmuxFile );
+    const s3FileLocation = await stackpaths3.upload( transmuxFile, service );
 
     // Delete local mp4 file
     console.log( `Delete transmuxed mp4 file on local server...` );
@@ -442,11 +478,15 @@ class ArchiveManager {
     }
 
 
+    // Finished processing!
     return {
       file: s3FileLocation,
       type: 'mp4',
       duration: transmuxData.video.duration,
       thumbnails: s3Thumbnails,
+      channel: channel,
+      service: service,
+      fileSize: transmuxData.format.size,
     };
   }
 

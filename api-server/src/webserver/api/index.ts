@@ -124,8 +124,13 @@ router.post(
         const interval = 5;
         let response;
         for ( let i: number = 0; i <= attempts; i++ ) {
-          response = await archiver.startArchive( name, 'replay' );
+
+          // Start recording odysee replay streams automatically
+          response = await archiver.startArchive( name, 'odysee' );
+
+          // Check if replay  started successfully
           if ( !response ) {
+            // Archive failed to start, wait, then try again.
             await new Promise( resolve => setTimeout( resolve, 1000 * interval ) );
             apiLogger.info( `${chalk.redBright('Failed to start archive')}, attempting again in ${interval} seconds (${i}/${attempts})` );
             if ( i === attempts ) apiLogger.info( `${chalk.redBright('Giving up on archive.')} (out of attempts)` );
@@ -260,7 +265,8 @@ router.post(
         } catch ( error ) {
           console.error( error.message );
         }
-        // remove finished timer
+
+        // remove finished LIVE timer
         liveTimers = liveTimers.filter( val => val.user.toLowerCase() !== name.toLowerCase() );
       }, notificationDelay * 1000 );
 
@@ -840,18 +846,25 @@ router.post(
   '/archive/end',
 
   async ( req, res ) => {
-    const name = req.body.name;
-    const path = req.body.path;
+    const channel = req.body.channel;
+    const service = req.body.service;
+    const result  = req.body.result;
 
-    console.log( `Archive for ${name} saved to ${path}. Converting to MP4 and generating thumbnails...` );
+    console.log( `Saving replay for ${channel} on ${service}:\n`, result );
 
-    const result = await archiver.transmuxArchive( path, name );
+    // Save archive via bitwave API
+    if ( service === 'bitwave' ) {
+      await streamauth.saveArchive( channel, result.file, result.duration, result.thumbnails );
+      console.log( `Saved bitwave replay` );
+    }
 
-    console.log( `Archive is ${( result.duration / 60 ).toFixed( 2 )} minutes long` );
+    // Save archive via odysee API
+    if ( service === 'odysee' ) {
+      await odyseeStream.saveArchive( channel, result );
+      console.log( `Saved odysee replay` );
+    }
 
-    await streamauth.saveArchive( name, result.file, result.duration, result.thumbnails );
-
-    res.send();
+    return res.send();
   },
 );
 

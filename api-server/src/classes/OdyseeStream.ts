@@ -10,10 +10,13 @@ import * as chalk from 'chalk';
 import * as rp from 'request-promise';
 
 import * as admin from 'firebase-admin';
+import { IArchiveTransmuxed } from './Archiver';
 
 const hlsStream: string  = `hls`;
 const transcodeStream: string = `transcode`;
 const thumbnail: string  = `preview`;
+
+const dbServerTimestamp = admin.firestore.FieldValue.serverTimestamp;
 
 export default class OdyseeStream {
   private readonly hostServer: string;
@@ -116,31 +119,35 @@ export default class OdyseeStream {
   /**
    * Passes archive information to API server
    * @param {string} claimId
-   * @param {string} location
-   * @param {number} duration
-   * @param {Array<string>} thumbnails
+   * @param {IArchiveTransmuxed} archive
    * @return {Promise<void>}
    */
-  async saveArchive ( claimId: string, location: string, duration: number, thumbnails: string[] ): Promise<void> {
-    const options = {
-      headers: {
-        'content-type': 'application/x-www-form-urlencoded',
-      },
-      form: {
-        server: this.hostServer,
-        username: claimId,
-        location: location,
-        duration: duration,
-        thumbnails: thumbnails,
-      },
+  async saveArchive ( claimId: string, archive: IArchiveTransmuxed ): Promise<void> {
+
+    const odyseeReplayDocument = {
+      claimId: claimId,
+      _claimId: claimId.toLowerCase(),
+      service: 'odysee',
+      fileLocation: archive.file,
+      fileType: archive.type,
+      fileDuration: archive.duration,
+      fileSize: archive.fileSize,
+      thumbnails: archive.thumbnails,
+      deleted: false,
+      published: false,
+      uploadedAt: dbServerTimestamp(),
+      deletedAt: null,
+      publishedAt: null,
     };
 
-    try {
-      const response = await rp.post( 'https://api.bitwave.tv/v1/archives',  options );
-      log.info( response );
-    } catch ( error ) {
-      log.info( error );
-    }
+    // Reference to odysee stream document
+    const odyseeReplayCollection = admin
+      .firestore()
+      .collection( 'odysee-replays' );
+
+    const replayReference = await odyseeReplayCollection.add( odyseeReplayDocument );
+
+    log.info( `Odysee replay added to odysee-replays as: ${replayReference.id}` );
   };
 
   /**

@@ -71,8 +71,8 @@ class StackpathS3 {
 
 
   // Upload file (multipart)
-  async upload ( fileLocation: string )  {
-    const filename = `replay/${path.basename( fileLocation )}`;
+  async upload ( fileLocation: string, service: string )  {
+    const filename = `${service}-replay/${path.basename( fileLocation )}`;
     const data = fs.createReadStream( fileLocation );
 
     // Upload a file
@@ -100,8 +100,8 @@ class StackpathS3 {
 
 
   // Upload thumbnail image (multipart)
-  async uploadImage ( fileLocation: string )  {
-    const filename = `replay/thumbnails/${path.basename( fileLocation )}`;
+  async uploadImage ( fileLocation: string, service: string )  {
+    const filename = `${service}-replay/thumbnails/${path.basename( fileLocation )}`;
     const data = fs.createReadStream( fileLocation );
 
     // Upload a file
