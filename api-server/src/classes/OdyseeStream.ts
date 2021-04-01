@@ -124,9 +124,11 @@ export default class OdyseeStream {
    */
   async saveArchive ( claimId: string, archive: IArchiveTransmuxed ): Promise<void> {
 
-    const replaceDomain = src => src.replace( 'sfo2.digitaloceanspaces.com/vods', 'vods.odysee.live' );
+    // TODO: Add vods.odysee.live to ENV vars
+    const replaceDomain = src => src.replace( /(vods[.])?(sfo2[.]digitaloceanspaces[.]com)([/]vods)?/, 'vods.odysee.live' );
 
     const odyseeReplayDocument = {
+      key: archive.key,
       claimId: claimId.toLowerCase(),
       service: 'odysee',
       fileLocation: replaceDomain( archive.file ),

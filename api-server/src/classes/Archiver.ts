@@ -14,6 +14,7 @@ type IStreamService = 'odysee' | 'bitwave';
 
 export interface IArchiveTransmuxed {
   file: string;
+  key: string;
   type: 'flv'|'mp4';
   duration: number;
   fileSize: number;
@@ -340,6 +341,7 @@ class ArchiveManager {
       console.log( error );
       return {
         file: file,
+        key: file,
         type: 'flv',
         duration: 0,
         thumbnails: [],
@@ -353,6 +355,7 @@ class ArchiveManager {
       console.log( chalk.redBright( `Archive transmux failed... Bailing early.` ) );
       return {
         file: file,
+        key: file,
         type: 'flv',
         duration: 0,
         thumbnails: [],
@@ -372,6 +375,7 @@ class ArchiveManager {
       console.log( error );
       return {
         file: file,
+        key: file,
         type: 'flv',
         duration: 0,
         thumbnails: [],
@@ -385,6 +389,7 @@ class ArchiveManager {
       console.log( `Archive transmux probe failed... Bailing early.` );
       return {
         file: file,
+        key: file,
         type: 'flv',
         duration: 0,
         thumbnails: [],
@@ -433,8 +438,8 @@ class ArchiveManager {
       try {
         s3Thumbnails = await Promise.all(
           thumbnails.map( async thumbnail => {
-            return await stackpaths3.uploadImage( thumbnail, service );
-          } )
+            return (await stackpaths3.uploadImage( thumbnail, service )).location;
+          })
         );
       } catch ( error ) {
         console.log( chalk.redBright( `Thumbnail upload failed... This is probably bad..` ) );
@@ -463,7 +468,7 @@ class ArchiveManager {
 
     // S3 Upload video
     console.log( `Upload mp4 to S3 bucket...` );
-    const s3FileLocation = await stackpaths3.upload( transmuxFile, service );
+    const s3File = await stackpaths3.upload( transmuxFile, service );
 
     // Delete local mp4 file
     console.log( `Delete transmuxed mp4 file on local server...` );
@@ -480,7 +485,8 @@ class ArchiveManager {
 
     // Finished processing!
     return {
-      file: s3FileLocation,
+      file: s3File.location,
+      key: s3File.key,
       type: 'mp4',
       duration: transmuxData.video.duration,
       thumbnails: s3Thumbnails,

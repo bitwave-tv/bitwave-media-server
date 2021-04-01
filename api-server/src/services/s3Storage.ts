@@ -8,6 +8,8 @@ import * as path from 'path';
 
 import * as AWS from 'aws-sdk';
 import S3 = require('aws-sdk/clients/s3');
+import { AWSError } from 'aws-sdk';
+import { ListBucketsOutput } from 'aws-sdk/clients/s3';
 
 
 
@@ -27,17 +29,18 @@ class StackpathS3 {
     this.bucket = config.params.Bucket;
   }
 
-  // List buckets
-  async listBuckets () {
-    // List all buckets
-    this.s3.listBuckets( ( err, data ) => {
-      if ( err ) {
-        console.log( err, err.stack );
-      } else {
-        data[ 'Buckets' ]
-          .forEach( space => console.log( space[ 'Name' ] ) )
-      }
-    });
+  // Logs a list of all S3 buckets
+  async listBuckets (): Promise<void> {
+    return new Promise<void>(resolve =>
+      this.s3.listBuckets( ( err: AWSError, data: ListBucketsOutput ) => {
+        if ( err ) {
+          console.log( err.message );
+        } else {
+          data[ 'Buckets' ].forEach( space => console.log( 'Bucket:', space[ 'Name' ] ) );
+        }
+        resolve();
+      })
+    );
   }
 
 
@@ -91,7 +94,11 @@ class StackpathS3 {
 
       // console.log( result );
       console.log( `Video location: ${result.Location}` );
-      return result.Location;
+      return {
+        key: result.Key,
+        location: result.Location,
+        etag: result.ETag,
+      }
     } catch ( error ) {
       console.error(  error.message );
     }
@@ -120,7 +127,11 @@ class StackpathS3 {
 
       // console.log( result );
       console.log( `Image location: ${result.Location}` );
-      return result.Location;
+      return {
+        key: result.Key,
+        location: result.Location,
+        etag: result.ETag,
+      }
     } catch ( error ) {
       console.error(  `Upload failed: ${error.message}` );
     }
