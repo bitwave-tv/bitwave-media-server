@@ -141,6 +141,7 @@ export default class OdyseeStream {
       uploadedAt: dbServerTimestamp(),
       deletedAt: null,
       publishedAt: null,
+      ffprobe: archive.ffprobe,
     };
 
     // Reference to odysee stream document

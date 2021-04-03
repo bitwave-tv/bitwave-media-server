@@ -5,7 +5,7 @@ import { promises as fsp } from 'fs';
 import * as path from 'path';
 import * as chalk from 'chalk';
 import * as FfmpegCommand from 'fluent-ffmpeg';
-import { ffprobe, FfprobeData } from 'fluent-ffmpeg';
+import { ffprobe, FfprobeData, FfprobeStream } from 'fluent-ffmpeg';
 
 import { stackpaths3 } from '../services/s3Storage';
 import * as rp from 'request-promise';
@@ -21,6 +21,10 @@ export interface IArchiveTransmuxed {
   thumbnails: string[];
   channel: string;
   service: IStreamService;
+  ffprobe: {
+    videoData: FfprobeStream[],
+    audioData: FfprobeStream[],
+  };
 }
 
 interface IRecorder {
@@ -348,6 +352,10 @@ class ArchiveManager {
         channel: channel,
         service: service,
         fileSize: 0,
+        ffprobe: {
+          videoData: [],
+          audioData: [],
+        },
       };
     }
 
@@ -362,6 +370,10 @@ class ArchiveManager {
         channel: channel,
         service: service,
         fileSize: 0,
+        ffprobe: {
+          videoData: [],
+          audioData: [],
+        },
       };
     }
 
@@ -382,6 +394,10 @@ class ArchiveManager {
         channel: channel,
         service: service,
         fileSize: 0,
+        ffprobe: {
+          videoData: [],
+          audioData: [],
+        },
       };
     }
 
@@ -396,6 +412,10 @@ class ArchiveManager {
         channel: channel,
         service: service,
         fileSize: 0,
+        ffprobe: {
+          videoData: [],
+          audioData: [],
+        },
       };
     }
 
@@ -493,6 +513,10 @@ class ArchiveManager {
       channel: channel,
       service: service,
       fileSize: transmuxData.format.size,
+      ffprobe: {
+        videoData: transmuxData.video,
+        audioData: transmuxData.audio,
+      },
     };
   }
 
