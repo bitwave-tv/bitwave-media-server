@@ -18,6 +18,28 @@ const thumbnail: string  = `preview`;
 
 const dbServerTimestamp = admin.firestore.FieldValue.serverTimestamp;
 
+interface IClaimData {
+  address: string;
+  amount: string;
+  canonical_url: string;
+  claim_id: string;
+  claim_op: string;
+  confirmations: number;
+  has_signing_key: boolean;
+  height: number;
+  meta: object;
+  name: string;
+  normalized_name: string;
+  nout: number;
+  permanent_url: string;
+  short_url: string;
+  timestramp: number;
+  txid: string;
+  type: string;
+  value: object;
+  value_type: string;
+}
+
 export default class OdyseeStream {
   private readonly hostServer: string;
   private readonly cdnServer: string;
@@ -43,8 +65,15 @@ export default class OdyseeStream {
     const streamUrl = `https://${this.cdnServer}/${hlsStream}/${claimId}/index.m3u8`;
     const thumbUrl  = `https://${this.cdnServer}/${thumbnail}/${claimId}.jpg`;
 
+    const claimIdData = await this.getClaimIdData( claimId );
+
     await streamRef.set({
       claimId: claimId,
+      claimData: {
+        _name: claimIdData.normalized_name,
+        name: claimIdData.name,
+        shortUrl: claimIdData.short_url.replace( `lbry://`, `https://odysee.com/` ),
+      },
       live: isLive,
       url: streamUrl,
       type: 'application/x-mpegurl',
@@ -220,4 +249,49 @@ export default class OdyseeStream {
     log.info( chalk.redBright( `Odysee signature failed verification! (invalid Odysee API response)` ) );
     return false;
   }
+
+  /**
+   * Gets result from claim_search SDK for claimId
+   * See: {@link https://lbry.tech/api/sdk#claim_search} for more info and options.
+   * @param {string} claimId
+   */
+  async getClaimIdData ( claimId: string ): Promise<IClaimData|null> {
+    // Odysee JSON RPC Method
+    const method = 'claim_search'
+
+    // Odysee JSON RPC Payload
+    const body = {
+      jsonrpc: "2.0",
+      method: method,
+      params: { 'claim_id': claimId },
+    };
+
+    // Build Post Request Options
+    const options = {
+      headers: { 'content-type': 'application/json' },
+      json: true,
+      body: body,
+    };
+
+    // Submit API request to Odysee API
+    let response = undefined;
+    try {
+      response = await rp.post( 'https://api.lbry.tv/api/v1/proxy', options );
+      // Log Odysee API request
+      log.info( `SENT: ${JSON.stringify( body )}`,  )
+      log.info( `RESPONSE: ${JSON.stringify( response )}` );
+    } catch ( error ) {
+      log.info( 'Error during Odysee API call to get claim id channel data!' );
+      log.error( error );
+      return  null;
+    }
+
+    if ( response.result.items?.length > 0 ) {
+      return response.result.items[0];
+    } else {
+      log.info( `no results from claim search!` );
+      return null;
+    }
+  }
+
 }
