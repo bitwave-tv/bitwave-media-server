@@ -29,7 +29,7 @@
     "moment-timezone": "^0.5.33",
     "printf": "^0.6.1",
     "q": "^1.5.1",
-    "request": "^2.88.0",
+    "request": "^2.88.2",
     "request-promise": "^4.2.6"
   },
   "devDependencies": {
