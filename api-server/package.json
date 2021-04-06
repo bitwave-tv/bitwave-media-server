@@ -45,7 +45,7 @@
     "@types/fluent-ffmpeg": "^2.1.14",
     "@types/node": "^12.12.7",
     "@types/q": "^1.5.4",
-    "@types/request-promise": "^4.1.46",
+    "@types/request-promise": "^4.1.47",
     "@types/socket.io-client": "^1.4.33"
   }
 }
