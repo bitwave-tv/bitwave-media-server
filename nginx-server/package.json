@@ -30,7 +30,7 @@
     "printf": "^0.6.1",
     "q": "^1.5.1",
     "request": "^2.88.0",
-    "request-promise": "^4.2.4"
+    "request-promise": "^4.2.6"
   },
   "devDependencies": {
     "@types/express": "^4.17.11",
