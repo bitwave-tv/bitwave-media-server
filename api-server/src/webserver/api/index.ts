@@ -325,6 +325,7 @@ router.post(
       // Bitwave (non-odysee) streams
       if ( !streamer.isOdysee ) {
         // Set offline status
+        apiLogger.info(`Setting DB live state to false for: ${name}`);
         await streamauth.setLiveStatus( name, false );
       }
       //---------------------------------------------------
@@ -332,6 +333,7 @@ router.post(
       //---------------------------------------------------
       // Odysee streams
       if ( streamer.isOdysee ) {
+        apiLogger.info(`Setting DB live state to false for odysee stream: ${name}`);
         await odyseeStream.setLiveStatus( name, false );
       }
       //---------------------------------------------------
