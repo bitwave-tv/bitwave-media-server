@@ -24,7 +24,7 @@
   },
   "homepage": "https://github.com/bitwave-tv/bitwave-media-server#readme",
   "dependencies": {
-    "aws-sdk": "^2.702.0",
+    "aws-sdk": "^2.881.0",
     "body-parser": "^1.19.0",
     "cfonts": "^2.9.1",
     "chalk": "^4.1.0",
