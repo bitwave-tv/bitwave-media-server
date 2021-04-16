@@ -62,6 +62,7 @@ services:
       - BMS_TIMEZONE=America/Los_Angeles
       - BMS_SERVER=stream.bitwave.tv      # MODIFY THIS
       - BMS_CDN=cdn.stream.bitwave.tv     # MODIFY THIS
+      - SEVER_SECRET=SECRET               # MODIFY THIS
 
 
 # Network Definitions

@@ -258,10 +258,20 @@ router.post(
     if ( name ) {
       const timer: Timeout = setTimeout( async () => {
         apiLogger.info(`[${app}] ${chalk.cyanBright.bold(name)} is now ${chalk.greenBright.bold('sending notification request')}.`);
+
         // Send notifications
         const options = { form: { streamer: name } };
         try {
-          await rp.post( 'https://api.bitwave.tv/api/notification/live', options );
+          // Get streamer data (used to detect Odysee streams)
+          let streamer = serverData.getStreamerData( name );
+          // Odysee streams
+          if ( streamer && streamer.isOdysee ) {
+            await odyseeStream.sendNotification( name );
+          }
+          // Bitwave (non-odysee) streams
+          else {
+            await rp.post( 'https://api.bitwave.tv/api/notification/live', options );
+          }
         } catch ( error ) {
           console.error( error.message );
         }

@@ -72,7 +72,9 @@ export default class OdyseeStream {
       claimData: {
         _name: claimIdData.normalized_name,
         name: claimIdData.name,
-        shortUrl: claimIdData.short_url.replace( `lbry://`, `https://odysee.com/` ),
+        shortUrl: claimIdData.short_url,
+        canonicalUrl: claimIdData.canonical_url,
+        channelLink: claimIdData.short_url.replace( `lbry://`, `https://odysee.com/` ),
       },
       live: isLive,
       url: streamUrl,
@@ -89,6 +91,47 @@ export default class OdyseeStream {
 
     log.info( `${chalk.cyanBright(claimId)} is now ${ isLive ? chalk.greenBright.bold('LIVE') : chalk.redBright.bold('OFFLINE') }` );
   };
+
+
+  /**
+   * Send live notification to API server
+   * @param claimId
+   * @return {Promise<boolean>}
+   */
+  async sendNotification ( claimId: string ): Promise<boolean> {
+    log.info( `Sending odysee notification...` );
+
+    // Odysee JSON RPC Payload
+    const body = {
+      claimId: claimId,
+      key: process.env.SEVER_SECRET,
+    };
+
+    // Build Post Request Options
+    const options = {
+      headers: {
+        'content-type': 'application/json',
+      },
+      json: true,
+      body: body,
+    };
+
+    // Submit API request to Odysee API
+    let response = undefined;
+    try {
+      response = await rp.post( 'https://api.bitwave.tv/v1/odysee/send-notification', options );
+      // Log Odysee API request
+      log.info( `SENT: ${JSON.stringify( body )}`,  )
+      log.info( `RESPONSE: ${JSON.stringify( response )}` );
+
+      return true;
+    } catch ( error ) {
+      log.info( 'Error during API call for notification' );
+      log.error( error );
+
+      return  false;
+    }
+  }
 
   /**
    * Set transcode status and livestream endpoint
@@ -261,9 +304,11 @@ export default class OdyseeStream {
 
     // Odysee JSON RPC Payload
     const body = {
-      jsonrpc: "2.0",
+      jsonrpc: '2.0',
       method: method,
-      params: { 'claim_id': claimId },
+      params: {
+        'claim_id': claimId,
+      },
     };
 
     // Build Post Request Options
@@ -278,8 +323,8 @@ export default class OdyseeStream {
     try {
       response = await rp.post( 'https://api.lbry.tv/api/v1/proxy', options );
       // Log Odysee API request
-      log.info( `SENT: ${JSON.stringify( body )}`,  )
-      log.info( `RESPONSE: ${JSON.stringify( response )}` );
+      // log.info( `SENT: ${JSON.stringify( body )}` );
+      // log.info( `RESPONSE: ${JSON.stringify( response )}` );
     } catch ( error ) {
       log.info( 'Error during Odysee API call to get claim id channel data!' );
       log.error( error );
@@ -294,4 +339,55 @@ export default class OdyseeStream {
     }
   }
 
+  /**
+   * Gets the most recent livestream claim data for a given channel's claim id
+   * See: {@link https://lbry.tech/api/sdk#claim_search} for more info and options.
+   * @param {string} channelClaimId
+   */
+  async getLivestreamClaimByChannelClaimId ( channelClaimId: string ): Promise<IClaimData|null> {
+    // Odysee JSON RPC Method
+    const method = 'claim_search'
+
+    // Odysee JSON RPC Payload
+    const body = {
+      jsonrpc: '2.0',
+      method: method,
+      params: {
+        // Channel's Claim ID
+        claim_id: channelClaimId,
+
+        // Constant search params
+        has_no_source: true,
+        order_by: 'release_time',
+        no_totals: true
+      },
+    };
+
+    // Build Post Request Options
+    const options = {
+      headers: { 'content-type': 'application/json' },
+      json: true,
+      body: body,
+    };
+
+    // Submit API request to Odysee API
+    let response = undefined;
+    try {
+      response = await rp.post( 'https://api.lbry.tv/api/v1/proxy', options );
+      // Log Odysee API request
+      // log.info( `SENT: ${JSON.stringify( body )}` );
+      // log.info( `RESPONSE: ${JSON.stringify( response )}` );
+    } catch ( error ) {
+      log.info( 'Error during Odysee API call to get claim id channel data!' );
+      log.error( error );
+      return  null;
+    }
+
+    if ( response.result.items?.length > 0 ) {
+      return response.result.items[0];
+    } else {
+      log.info( `no results from claim search!` );
+      return null;
+    }
+  }
 }
