@@ -862,7 +862,7 @@ router.post(
     const service = req.body.service;
     const result  = req.body.result;
 
-    console.log( `Saving replay for ${channel} on ${service}:\n`, result );
+    console.log( `Saving replay for ${channel} on ${service}:\n` );
 
     // Save archive via bitwave API
     if ( service === 'bitwave' ) {

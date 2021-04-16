@@ -81,7 +81,7 @@ export default class OdyseeStream {
       type: 'application/x-mpegurl',
       thumbnail: thumbUrl,
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
-    });
+    }, { merge: true });
 
     if ( isLive ) {
       serverData.addStreamer( claimId, true );
@@ -141,7 +141,8 @@ export default class OdyseeStream {
    * @return {Promise<void>}
    */
   async setTranscodeStatus ( claimId: string, transcoded: boolean, location?: string ): Promise<void> {
-    const streamRef = admin.firestore()
+    const streamRef = admin
+      .firestore()
       .collection( 'odysee-streams' )
       .doc( claimId.toLowerCase() );
 
@@ -265,7 +266,6 @@ export default class OdyseeStream {
     try {
       response = await rp.post( 'https://comments.lbry.com/api/v2?m=verify.Signature', options );
       // Log Odysee API request
-      log.info( `SENT: ${JSON.stringify( body )}`,  )
       log.info( `RESPONSE: ${JSON.stringify( response )}` );
     } catch ( error ) {
       log.info( 'Error during Odysee API call to validate channel sign!' );
@@ -322,9 +322,6 @@ export default class OdyseeStream {
     let response = undefined;
     try {
       response = await rp.post( 'https://api.lbry.tv/api/v1/proxy', options );
-      // Log Odysee API request
-      // log.info( `SENT: ${JSON.stringify( body )}` );
-      // log.info( `RESPONSE: ${JSON.stringify( response )}` );
     } catch ( error ) {
       log.info( 'Error during Odysee API call to get claim id channel data!' );
       log.error( error );
@@ -374,9 +371,6 @@ export default class OdyseeStream {
     let response = undefined;
     try {
       response = await rp.post( 'https://api.lbry.tv/api/v1/proxy', options );
-      // Log Odysee API request
-      // log.info( `SENT: ${JSON.stringify( body )}` );
-      // log.info( `RESPONSE: ${JSON.stringify( response )}` );
     } catch ( error ) {
       log.info( 'Error during Odysee API call to get claim id channel data!' );
       log.error( error );
