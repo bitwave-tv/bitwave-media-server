@@ -5,7 +5,7 @@ export function toHex ( data ): string {
   let s = unescape( encodeURIComponent( data ) );
   let result = '';
   for ( let i = 0; i < s.length; i++ ) {
-    result += s.charCodeAt( i ).toString( 16 );
+    result += s.charCodeAt( i ).toString( 16 ).padStart( 2, '0' );;
   }
   return result;
 }
