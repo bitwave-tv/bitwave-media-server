@@ -38,7 +38,7 @@
     "q": "^1.5.1",
     "request": "^2.88.0",
     "request-promise": "^4.2.6",
-    "socket.io-client": "^2.3.0"
+    "socket.io-client": "^4.0.2"
   },
   "devDependencies": {
     "@types/express": "^4.17.11",
