@@ -30,7 +30,7 @@
     "chalk": "^4.1.0",
     "compression": "^1.7.4",
     "express": "^4.17.1",
-    "express-validator": "^6.10.0",
+    "express-validator": "^6.11.1",
     "firebase-admin": "^9.6.0",
     "fluent-ffmpeg": "^2.1.2",
     "moment-timezone": "^0.5.31",
