@@ -127,6 +127,7 @@ class StreamRelay {
       '-vsync 0',
       '-copyts',
       '-start_at_zero',
+      '-movflags faststart',
 
       '-x264opts no-scenecut',
     ]);
