@@ -33,7 +33,7 @@
     "express-validator": "^6.10.0",
     "firebase-admin": "^9.6.0",
     "fluent-ffmpeg": "^2.1.2",
-    "moment-timezone": "^0.5.31",
+    "moment-timezone": "^0.5.33",
     "printf": "^0.6.1",
     "q": "^1.5.1",
     "request": "^2.88.0",
