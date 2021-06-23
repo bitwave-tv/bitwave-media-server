@@ -36,8 +36,8 @@ const OUTPUT_144_OPTIONS = [
   // '-maxrate {bitrate}k', // bitrate
   // '-bufsize {bitrate}k', // bitrate
   // '-r {fps}', // fps
+  // '-pix_fmt yuv420p', // pixel format
   '-g 60', // gop
-  '-pix_fmt yuv420p',
   '-vsync 1',
 
   // custom
@@ -62,8 +62,8 @@ const OUTPUT_480_OPTIONS = [
   // '-b:v 500k', //bitrate
   // '-maxrate {bitrate}k', // bitrate
   // '-bufsize {bitrate}k', // bitrate
+  // '-pix_fmt yuv420p', // pixel format
   '-g 60', // gop
-  '-pix_fmt yuv420p',
   '-vsync 1',
 
   // custom
