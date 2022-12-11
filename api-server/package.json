@@ -29,7 +29,7 @@
     "cfonts": "^2.9.1",
     "chalk": "^4.1.1",
     "compression": "^1.7.4",
-    "express": "^4.17.1",
+    "express": "^4.17.3",
     "express-validator": "^6.10.0",
     "firebase-admin": "^9.6.0",
     "fluent-ffmpeg": "^2.1.2",
